@@ -79,6 +79,9 @@ class HistoricalMLPipeline:
 
         X_rows, y_rows, meta_list = [], [], []
 
+        from app.adapters.weather_adapter import MockWeatherAdapter
+        weather_adapter = MockWeatherAdapter()
+
         for (train_no, journey_date), records in journeys.items():
             dt_obj = datetime.strptime(journey_date, "%Y-%m-%d")
             day_of_week = float(dt_obj.weekday())
@@ -113,7 +116,12 @@ class HistoricalMLPipeline:
 
                 # Simulate weather since we didn't query weather at ingest time, just map to month
                 is_fog = 1.0 if month in [12.0, 1.0] else 0.0
-                weather_penalty = is_fog * 0.4 if np.random.random() > 0.6 else 0.0
+                
+                weather_info = weather_adapter.get_weather_for_section(sec_key)
+                if weather_info.get("condition") != "CLEAR":
+                    weather_penalty = weather_info.get("speed_penalty_pct", 0.0)
+                else:
+                    weather_penalty = is_fog * 0.4
                 
                 X_rows.append([
                     float(cur.station_sequence), dist_orig, dist_dest, arr_del, dep_del,
@@ -164,6 +172,10 @@ class HistoricalMLPipeline:
     def train_and_version_model(self, hard_examples: Tuple = None) -> Dict[str, Any]:
         logger.info("Starting unified historical ML model training pipeline...")
         X, y, meta, feature_names, provenance = self.extract_features()
+        if len(X) == 0:
+            logger.error("No training data available.")
+            raise ValueError("no training data — run backfill_real_historical_data.py first")
+            
         X_train, y_train, X_val, y_val, X_test, y_test = self.time_based_split(X, y, meta)
 
         # Inject hard examples from replay buffer if available (A3)

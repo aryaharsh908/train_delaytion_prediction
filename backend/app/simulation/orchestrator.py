@@ -1080,6 +1080,7 @@ class SimulationOrchestrator:
                 st_live_delay = st_live_dep_del
                 st_ml_delay = st_live_delay
                 accumulated_ml_delay = st_live_delay
+                ml_status_flag = "LIVE"
             else:
                 # UPCOMING Station: Dynamic ML Delay Progression using historical station arrival delay records
                 prev_st = stations_def[idx - 1]
@@ -1109,10 +1110,15 @@ class SimulationOrchestrator:
                             hour=float(_now.hour) + _now.minute / 60.0
                         )
                         st_ml_delay = round(max(current_delay, gbr_pred), 1)
-                    except Exception:
+                        ml_status_flag = "ONLINE"
+                    except Exception as e:
+                        import logging
+                        logging.getLogger("orchestrator").error(f"Model prediction failed: {e}")
                         st_ml_delay = round(current_delay + hist_accumulated_delta, 1)
+                        ml_status_flag = "UNAVAILABLE_SCHEDULE_ESTIMATE"
                 else:
                     st_ml_delay = round(current_delay + hist_accumulated_delta, 1)
+                    ml_status_flag = "UNAVAILABLE_SCHEDULE_ESTIMATE"
 
                 st_live_arr_del = current_delay
                 st_live_dep_del = current_delay
@@ -1189,6 +1195,7 @@ class SimulationOrchestrator:
                 "delay_difference_minutes": diff_delay,
                 "status": status_str,
                 "is_current_position": is_current,
+                "ml_status_flag": ml_status_flag,
                 "delay_reasons": self._build_delay_reasons_for_section(active_section_id, found_train) if status_str != "PASSED" else []
             })
 

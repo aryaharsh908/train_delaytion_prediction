@@ -170,7 +170,12 @@ DATABASE_URL="sqlite:///./railway_eta.db"
    pip install -r requirements.txt
    ```
 
-5. **Start the Backend Server**:
+5. **Backfill Historical Data (Required before ML Training)**:
+   ```bash
+   python backfill_real_historical_data.py
+   ```
+
+6. **Start the Backend Server**:
    ```bash
    python run.py
    ```
