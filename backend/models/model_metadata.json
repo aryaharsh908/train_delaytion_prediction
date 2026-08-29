@@ -1,0 +1,218 @@
+{
+  "model_version": "v025",
+  "active_model_filename": "eta_model_v025.pkl",
+  "filename": "eta_model_v025.pkl",
+  "training_start_date": "2024-08-24",
+  "training_end_date": "2026-08-18",
+  "dataset_size": 9776,
+  "features": [
+    "station_sequence",
+    "distance_from_origin",
+    "distance_to_destination",
+    "arrival_delay_minutes",
+    "departure_delay_minutes",
+    "day_of_week",
+    "month",
+    "time_of_day_hour",
+    "section_historical_median_time",
+    "section_historical_std_dev",
+    "delay_delta_vs_previous",
+    "weekday_historical_median",
+    "weather_penalty"
+  ],
+  "model_architecture": "HYBRID_TGNN_GBDT",
+  "metrics": {
+    "validation_mae": 3.41,
+    "validation_rmse": 4.59,
+    "median_absolute_error": 2.6,
+    "crps_score": 4.995,
+    "cascade_consistency_score": 0.69,
+    "pinball_loss_p10": 3.771,
+    "pinball_loss_p50": 1.703,
+    "pinball_loss_p90": 2.019,
+    "ml_mae": 3.41,
+    "ml_rmse": 4.59,
+    "ml_within_5min_pct": 77.3,
+    "ml_within_10min_pct": 95.5,
+    "naive_mae": 7.73,
+    "naive_rmse": 9.94,
+    "naive_within_5min_pct": 43.5,
+    "naive_within_10min_pct": 65.8
+  },
+  "pretraining_metrics": {
+    "loss_ssl_before": 79.0247,
+    "loss_ssl_after": 77.071,
+    "loss_phys_min_before": 613242.3544,
+    "loss_phys_min_after": 612990.8588,
+    "loss_headway": null,
+    "loss_headway_note": "No paired lead/trailing train data available for headway computation",
+    "loss_cascade": 0.0,
+    "total_pretrain_loss": 1226058.7886
+  },
+  "comparison": {
+    "hybrid_tgnn_gbdt": {
+      "mae": 4.58,
+      "rmse": 6.6
+    },
+    "gbr_model": {
+      "mae": 3.41,
+      "rmse": 4.59
+    },
+    "linear_regression": {
+      "mae": 5.2,
+      "rmse": 6.62
+    },
+    "naive_timetable_baseline": {
+      "mae": 7.73,
+      "rmse": 9.94
+    }
+  },
+  "feature_importance": {
+    "station_sequence": 0.0005,
+    "distance_from_origin": 0.0005,
+    "distance_to_destination": 0.0007,
+    "arrival_delay_minutes": 0.5976,
+    "departure_delay_minutes": 0.3993,
+    "day_of_week": 0.0,
+    "month": 0.0001,
+    "time_of_day_hour": 0.0011,
+    "section_historical_median_time": 0.0001,
+    "section_historical_std_dev": 0.0,
+    "delay_delta_vs_previous": 0.0001,
+    "weekday_historical_median": 0.0,
+    "weather_penalty": 0.0
+  },
+  "feature_importances": {
+    "station_sequence": 0.0005,
+    "distance_from_origin": 0.0005,
+    "distance_to_destination": 0.0007,
+    "arrival_delay_minutes": 0.5976,
+    "departure_delay_minutes": 0.3993,
+    "day_of_week": 0.0,
+    "month": 0.0001,
+    "time_of_day_hour": 0.0011,
+    "section_historical_median_time": 0.0001,
+    "section_historical_std_dev": 0.0,
+    "delay_delta_vs_previous": 0.0001,
+    "weekday_historical_median": 0.0,
+    "weather_penalty": 0.0
+  },
+  "version_history": [
+    {
+      "version": "v006",
+      "filename": "eta_model_v006.pkl",
+      "validation_mae": 2.23,
+      "validation_rmse": 3.2,
+      "created_at": "2026-08-23T18:43:26.011684"
+    },
+    {
+      "version": "v007",
+      "filename": "eta_model_v007.pkl",
+      "validation_mae": 0.01,
+      "validation_rmse": 0.01,
+      "created_at": "2026-08-23T22:26:55.708185"
+    },
+    {
+      "version": "v008",
+      "filename": "eta_model_v008.pkl",
+      "validation_mae": 0.08,
+      "validation_rmse": 0.15,
+      "created_at": "2026-08-24T00:31:54.615531"
+    },
+    {
+      "version": "v009",
+      "filename": "eta_model_v009.pkl",
+      "validation_mae": 0.49,
+      "validation_rmse": 0.7,
+      "created_at": "2026-08-24T02:08:08.899580"
+    },
+    {
+      "version": "v010",
+      "filename": "eta_model_v010.pkl",
+      "validation_mae": 0.21,
+      "validation_rmse": 0.35,
+      "created_at": "2026-08-24T02:40:48.887027"
+    },
+    {
+      "version": "v011",
+      "filename": "eta_model_v011.pkl",
+      "validation_mae": 0.21,
+      "validation_rmse": 0.35,
+      "created_at": "2026-08-24T02:44:59.541268"
+    },
+    {
+      "version": "v012",
+      "filename": "eta_model_v012.pkl",
+      "validation_mae": 0.2,
+      "validation_rmse": 0.35,
+      "created_at": "2026-08-24T04:08:44.043800"
+    },
+    {
+      "version": "v013",
+      "filename": "eta_model_v013.pkl",
+      "validation_mae": 0.64,
+      "validation_rmse": 0.98,
+      "created_at": "2026-08-24T04:09:29.349676"
+    },
+    {
+      "version": "v014",
+      "filename": "eta_model_v014.pkl",
+      "validation_mae": 0.64,
+      "validation_rmse": 0.98,
+      "created_at": "2026-08-24T04:15:20.953611"
+    },
+    {
+      "version": "v015",
+      "filename": "eta_model_v015.pkl",
+      "validation_mae": 1.14,
+      "validation_rmse": 1.44,
+      "crps_score": 1.116,
+      "created_at": "2026-08-27T02:31:58.750018"
+    },
+    {
+      "version": "v016",
+      "filename": "eta_model_v016.pkl",
+      "validation_mae": 0.49,
+      "validation_rmse": 0.86,
+      "crps_score": 6.854,
+      "created_at": "2026-08-27T21:39:03.638424"
+    },
+    {
+      "version": "v019",
+      "filename": "eta_model_v019.pkl",
+      "validation_mae": 4.4,
+      "validation_rmse": 8.2,
+      "crps_score": 7.957,
+      "created_at": "2026-08-29T19:53:55.367466"
+    },
+    {
+      "version": "v022",
+      "filename": "eta_model_v022.pkl",
+      "validation_mae": 1.64,
+      "validation_rmse": 3.07,
+      "crps_score": 4.555,
+      "created_at": "2026-08-29T20:06:06.205101"
+    },
+    {
+      "version": "v025",
+      "filename": "eta_model_v025.pkl",
+      "validation_mae": 3.41,
+      "validation_rmse": 4.59,
+      "crps_score": 4.995,
+      "created_at": "2026-08-29T20:26:13.174961"
+    }
+  ],
+  "data_provenance": {
+    "total_training_rows": 9984,
+    "train_numbers": [
+      "12626"
+    ],
+    "train_row_counts": {
+      "12626": 9984
+    },
+    "mock_synthetic_historical_count": 0,
+    "real_railradar_count": 9984
+  },
+  "created_at": "2026-08-29T20:26:13.175951",
+  "deployed": true
+}

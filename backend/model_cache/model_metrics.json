@@ -1,0 +1,24 @@
+{
+  "model_name": "Gradient Boosting Section Travel Regressor",
+  "trained_at": "2026-08-23 14:54:40",
+  "sample_count": 5142,
+  "ml_mae": 2.22,
+  "ml_rmse": 3.23,
+  "ml_within_5min_pct": 88.4,
+  "ml_within_10min_pct": 98.7,
+  "naive_mae": 2.86,
+  "naive_rmse": 5.95,
+  "naive_within_5min_pct": 81.8,
+  "naive_within_10min_pct": 90.9,
+  "feature_importances": {
+    "train_priority": 0.0011235367820991793,
+    "train_type_code": 0.0017589543186950325,
+    "day_of_week": 0.0002465909504355896,
+    "is_fog_season": 0.0036935798093068258,
+    "distance_from_origin": 0.002719300145954427,
+    "route_sequence": 0.0019331498356453894,
+    "arrival_delay": 0.01531024663302777,
+    "sched_section_travel_min": 0.9705607309697052,
+    "station_seq": 0.002653910555130596
+  }
+}
