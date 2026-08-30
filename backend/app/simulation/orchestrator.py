@@ -940,15 +940,39 @@ class SimulationOrchestrator:
 
     def get_train_route_timeline(self, train_id: str, journey_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Returns the full station-by-station route timeline for a train."""
-        from datetime import datetime
+        from datetime import datetime, timedelta
         today_str = datetime.now().strftime("%Y-%m-%d")
+        effective_date = journey_date if journey_date else today_str
         
-        if journey_date and journey_date != today_str:
-            return self._get_historical_route_timeline(train_id, journey_date)
+        is_live = False
+        if effective_date == today_str:
+            is_live = True
+        else:
+            clean_train_num = train_id.replace("TRAIN_", "") if "TRAIN_" in train_id else train_id
+            stations_def = route_catalogs.get(str(clean_train_num), route_catalogs["12951"])
+            
+            start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
+            
+            start_dt = datetime.strptime(effective_date, "%Y-%m-%d").replace(hour=start_h, minute=start_m)
+            
+            # calculate explicit end_dt
+            end_dt = start_dt
+            current_abs = start_h * 60 + start_m
+            for st in stations_def[1:]:
+                h, m = map(int, st["sched_arr"].split(":"))
+                if (h*60 + m) < current_abs:
+                    end_dt += timedelta(days=1)
+                current_abs = h*60 + m
+                
+            now = datetime.now()
+            if start_dt <= now <= (end_dt + timedelta(minutes=360)): 
+                is_live = True
         
-        return self._get_live_route_timeline(train_id)
+        if is_live:
+            return self._get_live_route_timeline(train_id, effective_date)
+        return self._get_historical_route_timeline(train_id, effective_date)
 
-    def _get_live_route_timeline(self, train_id: str) -> Optional[Dict[str, Any]]:
+    def _get_live_route_timeline(self, train_id: str, journey_date: str) -> Optional[Dict[str, Any]]:
         normalized_id = train_id if train_id.startswith("TRAIN_") else f"TRAIN_{train_id}"
         clean_train_num = train_id.replace("TRAIN_", "")
 
@@ -1007,31 +1031,29 @@ class SimulationOrchestrator:
         # Force sync current_idx to realistic Wall-Clock schedule
         from datetime import datetime
         now_time = datetime.now()
-        current_hrs, current_mins = now_time.hour, now_time.minute
-        current_absolute_mins = current_hrs * 60 + current_mins
         
         start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
-        start_abs_mins = start_h * 60 + start_m
+        journey_dt = datetime.strptime(journey_date, "%Y-%m-%d")
+        start_dt = journey_dt.replace(hour=start_h, minute=start_m)
         
-        last_arr_h, last_arr_m = map(int, stations_def[-1]["sched_arr"].split(":"))
-        last_abs_mins = last_arr_h * 60 + last_arr_m
-        
-        trip_duration = (last_abs_mins - start_abs_mins) % (24 * 60)
-        elapsed_mins_since_start = (current_absolute_mins - start_abs_mins) % (24 * 60)
-        
-        if elapsed_mins_since_start > trip_duration + 300: 
-            if elapsed_mins_since_start > 12 * 60:
-                elapsed_mins_since_start = 0 
-            else:
-                elapsed_mins_since_start = trip_duration 
-                
+        elapsed_mins_since_start = (now_time - start_dt).total_seconds() / 60.0
+        if elapsed_mins_since_start < 0:
+            elapsed_mins_since_start = 0
+            
         real_time_idx = 0
+        cumulative_mins = 0
+        last_abs = start_h * 60 + start_m
         for idx, st in enumerate(stations_def):
             arr_h, arr_m = map(int, st["sched_arr"].split(":"))
-            arr_abs_mins = arr_h * 60 + arr_m
-            st_elapsed = (arr_abs_mins - start_abs_mins) % (24 * 60)
+            curr_abs = arr_h * 60 + arr_m
             
-            if elapsed_mins_since_start >= st_elapsed + current_delay:
+            if curr_abs < last_abs:
+                cumulative_mins += (24 * 60 - last_abs + curr_abs)
+            else:
+                cumulative_mins += (curr_abs - last_abs)
+            last_abs = curr_abs
+            
+            if elapsed_mins_since_start >= cumulative_mins + current_delay:
                 real_time_idx = idx
             else:
                 break
