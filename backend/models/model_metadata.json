@@ -1,10 +1,10 @@
 {
-  "model_version": "v031",
-  "active_model_filename": "eta_model_v031.pkl",
-  "filename": "eta_model_v031.pkl",
+  "model_version": "v049",
+  "active_model_filename": "eta_model_v049.pkl",
+  "filename": "eta_model_v049.pkl",
   "training_start_date": "2024-01-01",
-  "training_end_date": "2024-01-04",
-  "dataset_size": 74490,
+  "training_end_date": "2026-08-23",
+  "dataset_size": 92325,
   "features": [
     "station_sequence",
     "distance_from_origin",
@@ -22,79 +22,79 @@
   ],
   "model_architecture": "HYBRID_TGNN_GBDT",
   "metrics": {
-    "validation_mae": 0.0,
-    "validation_rmse": 0.0,
+    "validation_mae": 0.02,
+    "validation_rmse": 0.09,
     "median_absolute_error": 0.0,
-    "crps_score": 0.0,
-    "cascade_consistency_score": 1.0,
-    "pinball_loss_p10": 0.0,
-    "pinball_loss_p50": 0.0,
-    "pinball_loss_p90": 0.0,
-    "ml_mae": 0.0,
-    "ml_rmse": 0.0,
+    "crps_score": 0.205,
+    "cascade_consistency_score": 0.95,
+    "pinball_loss_p10": 0.272,
+    "pinball_loss_p50": 0.011,
+    "pinball_loss_p90": 0.025,
+    "ml_mae": 0.02,
+    "ml_rmse": 0.09,
     "ml_within_5min_pct": 100.0,
     "ml_within_10min_pct": 100.0,
-    "naive_mae": 0.0,
-    "naive_rmse": 0.0,
-    "naive_within_5min_pct": 100.0,
-    "naive_within_10min_pct": 100.0
+    "naive_mae": 0.28,
+    "naive_rmse": 1.22,
+    "naive_within_5min_pct": 99.2,
+    "naive_within_10min_pct": 99.7
   },
   "pretraining_metrics": {
-    "loss_ssl_before": 0.0009,
-    "loss_ssl_after": 0.0287,
-    "loss_phys_min_before": 965255.2374,
-    "loss_phys_min_after": 964999.3734,
-    "loss_headway": null,
-    "loss_headway_note": "No paired lead/trailing train data available for headway computation",
+    "loss_ssl_before": 1.553,
+    "loss_ssl_after": 1.5691,
+    "loss_phys_min_before": 899190.6818,
+    "loss_phys_min_after": 898833.9045,
+    "loss_headway": 177.4942,
+    "loss_headway_note": "Computed from 428 real inter-train section pairs",
     "loss_cascade": 0.0,
-    "total_pretrain_loss": 1929998.7756
+    "total_pretrain_loss": 1797935.6194
   },
   "comparison": {
     "hybrid_tgnn_gbdt": {
-      "mae": 0.1,
-      "rmse": 0.1
+      "mae": 0.3,
+      "rmse": 0.73
     },
     "gbr_model": {
-      "mae": 0.0,
-      "rmse": 0.0
+      "mae": 0.02,
+      "rmse": 0.09
     },
     "linear_regression": {
-      "mae": 0.0,
-      "rmse": 0.0
+      "mae": 0.07,
+      "rmse": 0.26
     },
     "naive_timetable_baseline": {
-      "mae": 0.0,
-      "rmse": 0.0
+      "mae": 0.28,
+      "rmse": 1.22
     }
   },
   "feature_importance": {
-    "station_sequence": 0.0,
-    "distance_from_origin": 0.0,
-    "distance_to_destination": 0.0,
-    "arrival_delay_minutes": 0.0,
-    "departure_delay_minutes": 0.0,
-    "day_of_week": 0.0,
+    "station_sequence": 0.0003,
+    "distance_from_origin": 0.0002,
+    "distance_to_destination": 0.0007,
+    "arrival_delay_minutes": 0.1048,
+    "departure_delay_minutes": 0.8881,
+    "day_of_week": 0.0001,
     "month": 0.0,
-    "time_of_day_hour": 0.0,
-    "section_historical_median_time": 0.0,
+    "time_of_day_hour": 0.0004,
+    "section_historical_median_time": 0.0001,
     "section_historical_std_dev": 0.0,
-    "delay_delta_vs_previous": 0.0,
-    "weekday_historical_median": 0.0,
+    "delay_delta_vs_previous": 0.005,
+    "weekday_historical_median": 0.0003,
     "weather_penalty": 0.0
   },
   "feature_importances": {
-    "station_sequence": 0.0,
-    "distance_from_origin": 0.0,
-    "distance_to_destination": 0.0,
-    "arrival_delay_minutes": 0.0,
-    "departure_delay_minutes": 0.0,
-    "day_of_week": 0.0,
+    "station_sequence": 0.0003,
+    "distance_from_origin": 0.0002,
+    "distance_to_destination": 0.0007,
+    "arrival_delay_minutes": 0.1048,
+    "departure_delay_minutes": 0.8881,
+    "day_of_week": 0.0001,
     "month": 0.0,
-    "time_of_day_hour": 0.0,
-    "section_historical_median_time": 0.0,
+    "time_of_day_hour": 0.0004,
+    "section_historical_median_time": 0.0001,
     "section_historical_std_dev": 0.0,
-    "delay_delta_vs_previous": 0.0,
-    "weekday_historical_median": 0.0,
+    "delay_delta_vs_previous": 0.005,
+    "weekday_historical_median": 0.0003,
     "weather_penalty": 0.0
   },
   "version_history": [
@@ -216,21 +216,75 @@
       "validation_rmse": 0.0,
       "crps_score": 0.0,
       "created_at": "2026-08-30T16:08:43.234549"
+    },
+    {
+      "version": "v034",
+      "filename": "eta_model_v034.pkl",
+      "validation_mae": 0.0,
+      "validation_rmse": 0.0,
+      "crps_score": 0.0,
+      "created_at": "2026-08-30T23:41:23.332223"
+    },
+    {
+      "version": "v037",
+      "filename": "eta_model_v037.pkl",
+      "validation_mae": 0.01,
+      "validation_rmse": 0.02,
+      "crps_score": 0.171,
+      "created_at": "2026-08-30T23:56:06.774717"
+    },
+    {
+      "version": "v040",
+      "filename": "eta_model_v040.pkl",
+      "validation_mae": 0.01,
+      "validation_rmse": 0.02,
+      "crps_score": 0.171,
+      "created_at": "2026-08-30T23:57:19.501849"
+    },
+    {
+      "version": "v043",
+      "filename": "eta_model_v043.pkl",
+      "validation_mae": 0.01,
+      "validation_rmse": 0.02,
+      "crps_score": 0.171,
+      "created_at": "2026-08-30T23:57:58.042165"
+    },
+    {
+      "version": "v046",
+      "filename": "eta_model_v046.pkl",
+      "validation_mae": 0.01,
+      "validation_rmse": 0.02,
+      "crps_score": 0.168,
+      "created_at": "2026-08-30T23:59:06.686963"
+    },
+    {
+      "version": "v049",
+      "filename": "eta_model_v049.pkl",
+      "validation_mae": 0.02,
+      "validation_rmse": 0.09,
+      "crps_score": 0.205,
+      "created_at": "2026-08-31T00:06:19.972033"
     }
   ],
   "data_provenance": {
-    "total_training_rows": 74856,
+    "total_training_rows": 95177,
     "train_numbers": [
+      "12302",
       "12626",
       "12951"
     ],
     "train_row_counts": {
-      "12626": 74620,
-      "12951": 236
+      "12302": 6601,
+      "12626": 81585,
+      "12951": 6991
     },
-    "mock_synthetic_historical_count": 0,
-    "real_railradar_count": 74856
+    "source_counts": {
+      "mock_synthetic_historical": 95177
+    },
+    "mock_synthetic_historical_count": 95177,
+    "real_railradar_count": 0,
+    "data_provenance": "SYNTHETIC_BOOTSTRAP_ONLY"
   },
-  "created_at": "2026-08-30T16:08:43.235720",
+  "created_at": "2026-08-31T00:06:19.973214",
   "deployed": true
 }

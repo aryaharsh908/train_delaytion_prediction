@@ -556,6 +556,19 @@ class SimulationOrchestrator:
             sec_list_mc.append({"section_id": sec_id, "scheduled_travel_min": sched_min})
 
         ml_eta_dt = now_dt + timedelta(minutes=total_ml_travel_min)
+        
+        # Sanity Clamp: ML ETA shouldn't blindly drift 13 hours off-schedule due to additive errors.
+        # Max bound: timetable + (3x current delay) + 120 minutes buffer
+        curr_delay_for_clamp = train.get("current_delay_minutes", 0.0)
+        max_logical_eta = base_sched_arr + timedelta(minutes=(curr_delay_for_clamp * 3) + 120)
+        min_logical_eta = base_sched_arr - timedelta(minutes=30)
+        
+        if ml_eta_dt > max_logical_eta or ml_eta_dt < min_logical_eta:
+            print(f"[WARNING] Train {train_id} ML ETA wildly drifted ({ml_eta_dt.strftime('%H:%M')}). Clamping to schedule bounds.")
+            # Fallback to schedule-based estimate
+            fallback_travel_min = sum((self.graph.sections_dict.get(sid, {}).get("dist", 80) / self.graph.sections_dict.get(sid, {}).get("mps", 110)) * 60 for sid in downstream_sections)
+            ml_eta_dt = now_dt + timedelta(minutes=fallback_travel_min + curr_delay_for_clamp)
+
         ml_base_eta_str = ml_eta_dt.strftime("%H:%M IST")
 
         # 2. Dynamic Real-Time Factors with Train Priority Precedence Pattern

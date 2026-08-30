@@ -172,6 +172,7 @@ DATABASE_URL="sqlite:///./railway_eta.db"
 
 5. **Database Setup & Historical Data Ingestion (Required for ML)**:
    The SQLite database MUST reside in the `backend/` directory (`backend/railway_eta.db`). 
+   *Note: The repository ships with synthetic bootstrap data for demo/dev purposes; real training requires running the live API backfill separately.*
    Because the live Train API strictly rate-limits requests (`429 Too Many Requests`), we have provided an offline archive of genuine `where_is_my_train` JSON records.
    To freshly ingest the genuine offline records and retrain the ML model locally:
    ```bash

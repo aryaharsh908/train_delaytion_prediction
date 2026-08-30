@@ -40,8 +40,20 @@ class HistoricalMLPipeline:
             ).all()
 
         if not runs:
-            logger.warning("No real historical rows available.")
-            return np.array([]), np.array([]), [], [], {"total_training_rows": 0, "train_numbers": [], "mock_synthetic_historical_count": 0, "real_railradar_count": 0}
+            if real_only:
+                # If specifically requested real but none exist, attempt bootstrap fallback
+                synthetic_query = self.db.query(HistoricalTrainRun).filter(
+                    HistoricalTrainRun.source.in_(["mock_synthetic_historical", "unknown", "where_is_my_train_railradar_ingested"])
+                )
+                runs = synthetic_query.order_by(
+                    HistoricalTrainRun.train_number, HistoricalTrainRun.journey_date,
+                    HistoricalTrainRun.station_sequence
+                ).all()
+                if runs:
+                    logger.warning("Zero real rows found. Bootstrapping ML training on SYNTHETIC data for dev startup.")
+            if not runs:
+                logger.warning("No historical rows available (real or synthetic).")
+                return np.array([]), np.array([]), [], [], {"total_training_rows": 0, "mock_synthetic_historical_count": 0, "real_railradar_count": 0, "data_provenance": "EMPTY"}
 
         feature_names = [
             "station_sequence", "distance_from_origin", "distance_to_destination",
@@ -138,14 +150,23 @@ class HistoricalMLPipeline:
                     "station_code": cur.station_code,
                 })
 
+        from sqlalchemy import func
+        provenance_list = self.db.query(HistoricalTrainRun.source, func.count(HistoricalTrainRun.id)).group_by(HistoricalTrainRun.source).all()
+        prov_dict = {src: count for src, count in provenance_list if src}
+        real_count = prov_dict.get("where_is_my_train_railradar", 0)
+        
+        is_synthetic = (real_count == 0) and len(runs) > 0
         from collections import Counter
         train_counts = Counter(r.train_number for r in runs)
+        
         provenance_stats = {
             "total_training_rows": len(runs),
             "train_numbers": list(train_counts.keys()),
             "train_row_counts": dict(train_counts),
-            "mock_synthetic_historical_count": 0,
-            "real_railradar_count": len(runs)
+            "source_counts": prov_dict,
+            "mock_synthetic_historical_count": sum(c for s, c in prov_dict.items() if s != "where_is_my_train_railradar"),
+            "real_railradar_count": real_count,
+            "data_provenance": "SYNTHETIC_BOOTSTRAP_ONLY" if is_synthetic else "REAL_RAILRADAR"
         }
         return np.array(X_rows), np.array(y_rows), meta_list, feature_names, provenance_stats
 
@@ -178,7 +199,7 @@ class HistoricalMLPipeline:
         X, y, meta, feature_names, provenance = self.extract_features(real_only=real_only)
         if len(X) == 0:
             logger.error("No training data available.")
-            raise ValueError("no training data — run backfill_real_historical_data.py first")
+            raise ValueError("no training data (real or synthetic) — run backfill_real_historical_data.py first to seed DB")
             
         X_train, y_train, X_val, y_val, X_test, y_test = self.time_based_split(X, y, meta)
 

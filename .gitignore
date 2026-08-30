@@ -41,6 +41,7 @@ data/raw/
 *.db
 *.sqlite
 *.sqlite3
+!backend/railway_eta.db
 backend/models/*.pkl
 backend/models/*.joblib
 

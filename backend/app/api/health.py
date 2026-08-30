@@ -41,7 +41,7 @@ def get_system_health(db: Session = Depends(get_db)) -> Dict[str, Any]:
         "job_id": last_job.job_id if last_job else None,
         "status": last_job.status if last_job else "NO_JOBS",
         "records_downloaded": last_job.records_downloaded if last_job else 0,
-        "updated_at": last_job.updated_at.isoformat() if (last_job and last_job.updated_at) else None
+        "updated_at": last_job.updated_at if (last_job and last_job.updated_at) else None
     }
 
     adapter = get_historical_adapter()
