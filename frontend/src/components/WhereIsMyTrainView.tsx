@@ -482,7 +482,7 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
                       </span>
 
                       {/* ML Forecasted Delay Badge */}
-                      {st.ml_predicted_delay_minutes !== undefined && (
+                      {!isPassed && st.ml_predicted_delay_minutes !== undefined && (
                         <span style={{
                           background: st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(168, 85, 247, 0.2)',
                           border: st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? '1px solid #eab308' : '1px solid #a855f7',
@@ -504,7 +504,7 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
                       )}
 
                       {/* Probabilistic Quantile Fan-Chart Uncertainty Band Badge */}
-                      {st.eta_p10 && st.eta_p90 && (
+                      {!isPassed && st.eta_p10 && st.eta_p90 && (
                         <span style={{
                           background: 'linear-gradient(90deg, rgba(2, 132, 199, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
                           border: '1px solid rgba(56, 189, 248, 0.4)',
