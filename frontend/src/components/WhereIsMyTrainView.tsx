@@ -22,7 +22,12 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedDay, setSelectedDay] = useState<'Yesterday' | 'Today' | 'Tomorrow'>('Today');
 
-  const todayISO = new Date().toISOString().split('T')[0];
+  const getLocalDateString = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const todayISO = getLocalDateString(new Date());
   const [selectedDate, setSelectedDate] = useState<string>(todayISO);
 
   // Modals & Notifications
@@ -71,7 +76,7 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
     const d = new Date();
     if (type === 'yesterday') d.setDate(d.getDate() - 1);
     if (type === 'tomorrow') d.setDate(d.getDate() + 1);
-    const iso = d.toISOString().split('T')[0];
+    const iso = getLocalDateString(d);
     setSelectedDate(iso);
   };
 
