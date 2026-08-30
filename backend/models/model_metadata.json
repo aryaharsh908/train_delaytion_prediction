@@ -1,10 +1,10 @@
 {
-  "model_version": "v028",
-  "active_model_filename": "eta_model_v028.pkl",
-  "filename": "eta_model_v028.pkl",
-  "training_start_date": "2024-09-29",
-  "training_end_date": "2026-08-29",
-  "dataset_size": 84700,
+  "model_version": "v031",
+  "active_model_filename": "eta_model_v031.pkl",
+  "filename": "eta_model_v031.pkl",
+  "training_start_date": "2024-01-01",
+  "training_end_date": "2024-01-04",
+  "dataset_size": 74490,
   "features": [
     "station_sequence",
     "distance_from_origin",
@@ -22,78 +22,78 @@
   ],
   "model_architecture": "HYBRID_TGNN_GBDT",
   "metrics": {
-    "validation_mae": 4.84,
-    "validation_rmse": 5.99,
-    "median_absolute_error": 4.18,
-    "crps_score": 5.093,
-    "cascade_consistency_score": 0.5,
-    "pinball_loss_p10": 3.277,
-    "pinball_loss_p50": 2.422,
-    "pinball_loss_p90": 1.94,
-    "ml_mae": 4.84,
-    "ml_rmse": 5.99,
-    "ml_within_5min_pct": 58.3,
-    "ml_within_10min_pct": 91.1,
-    "naive_mae": 12.57,
-    "naive_rmse": 14.28,
-    "naive_within_5min_pct": 24.5,
-    "naive_within_10min_pct": 32.8
+    "validation_mae": 0.0,
+    "validation_rmse": 0.0,
+    "median_absolute_error": 0.0,
+    "crps_score": 0.0,
+    "cascade_consistency_score": 1.0,
+    "pinball_loss_p10": 0.0,
+    "pinball_loss_p50": 0.0,
+    "pinball_loss_p90": 0.0,
+    "ml_mae": 0.0,
+    "ml_rmse": 0.0,
+    "ml_within_5min_pct": 100.0,
+    "ml_within_10min_pct": 100.0,
+    "naive_mae": 0.0,
+    "naive_rmse": 0.0,
+    "naive_within_5min_pct": 100.0,
+    "naive_within_10min_pct": 100.0
   },
   "pretraining_metrics": {
-    "loss_ssl_before": 186.0016,
-    "loss_ssl_after": 183.2339,
-    "loss_phys_min_before": 266497.9104,
-    "loss_phys_min_after": 266343.2179,
-    "loss_headway": 876.9943,
-    "loss_headway_note": "Computed from 1397 real inter-train section pairs",
+    "loss_ssl_before": 0.0009,
+    "loss_ssl_after": 0.0287,
+    "loss_phys_min_before": 965255.2374,
+    "loss_phys_min_after": 964999.3734,
+    "loss_headway": null,
+    "loss_headway_note": "No paired lead/trailing train data available for headway computation",
     "loss_cascade": 0.0,
-    "total_pretrain_loss": 534185.1612
+    "total_pretrain_loss": 1929998.7756
   },
   "comparison": {
     "hybrid_tgnn_gbdt": {
-      "mae": 8.38,
-      "rmse": 9.8
+      "mae": 0.1,
+      "rmse": 0.1
     },
     "gbr_model": {
-      "mae": 4.84,
-      "rmse": 5.99
+      "mae": 0.0,
+      "rmse": 0.0
     },
     "linear_regression": {
-      "mae": 8.12,
-      "rmse": 9.96
+      "mae": 0.0,
+      "rmse": 0.0
     },
     "naive_timetable_baseline": {
-      "mae": 12.57,
-      "rmse": 14.28
+      "mae": 0.0,
+      "rmse": 0.0
     }
   },
   "feature_importance": {
-    "station_sequence": 0.0043,
-    "distance_from_origin": 0.0018,
-    "distance_to_destination": 0.0011,
-    "arrival_delay_minutes": 0.6634,
-    "departure_delay_minutes": 0.3268,
-    "day_of_week": 0.0004,
+    "station_sequence": 0.0,
+    "distance_from_origin": 0.0,
+    "distance_to_destination": 0.0,
+    "arrival_delay_minutes": 0.0,
+    "departure_delay_minutes": 0.0,
+    "day_of_week": 0.0,
     "month": 0.0,
-    "time_of_day_hour": 0.0007,
-    "section_historical_median_time": 0.0006,
+    "time_of_day_hour": 0.0,
+    "section_historical_median_time": 0.0,
     "section_historical_std_dev": 0.0,
-    "delay_delta_vs_previous": 0.0008,
+    "delay_delta_vs_previous": 0.0,
     "weekday_historical_median": 0.0,
     "weather_penalty": 0.0
   },
   "feature_importances": {
-    "station_sequence": 0.0043,
-    "distance_from_origin": 0.0018,
-    "distance_to_destination": 0.0011,
-    "arrival_delay_minutes": 0.6634,
-    "departure_delay_minutes": 0.3268,
-    "day_of_week": 0.0004,
+    "station_sequence": 0.0,
+    "distance_from_origin": 0.0,
+    "distance_to_destination": 0.0,
+    "arrival_delay_minutes": 0.0,
+    "departure_delay_minutes": 0.0,
+    "day_of_week": 0.0,
     "month": 0.0,
-    "time_of_day_hour": 0.0007,
-    "section_historical_median_time": 0.0006,
+    "time_of_day_hour": 0.0,
+    "section_historical_median_time": 0.0,
     "section_historical_std_dev": 0.0,
-    "delay_delta_vs_previous": 0.0008,
+    "delay_delta_vs_previous": 0.0,
     "weekday_historical_median": 0.0,
     "weather_penalty": 0.0
   },
@@ -208,39 +208,29 @@
       "validation_rmse": 5.99,
       "crps_score": 5.093,
       "created_at": "2026-08-30T15:06:15.381426"
+    },
+    {
+      "version": "v031",
+      "filename": "eta_model_v031.pkl",
+      "validation_mae": 0.0,
+      "validation_rmse": 0.0,
+      "crps_score": 0.0,
+      "created_at": "2026-08-30T16:08:43.234549"
     }
   ],
   "data_provenance": {
-    "total_training_rows": 92400,
+    "total_training_rows": 74856,
     "train_numbers": [
-      "12002",
-      "12260",
-      "12302",
-      "12424",
-      "12425",
-      "12622",
       "12626",
-      "12724",
-      "12951",
-      "12952",
-      "12958"
+      "12951"
     ],
     "train_row_counts": {
-      "12002": 6300,
-      "12260": 4900,
-      "12302": 5600,
-      "12424": 6300,
-      "12425": 4200,
-      "12622": 7000,
-      "12626": 33600,
-      "12724": 8400,
-      "12951": 5600,
-      "12952": 5600,
-      "12958": 4900
+      "12626": 74620,
+      "12951": 236
     },
     "mock_synthetic_historical_count": 0,
-    "real_railradar_count": 92400
+    "real_railradar_count": 74856
   },
-  "created_at": "2026-08-30T15:06:15.382494",
+  "created_at": "2026-08-30T16:08:43.235720",
   "deployed": true
 }

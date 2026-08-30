@@ -170,9 +170,16 @@ DATABASE_URL="sqlite:///./railway_eta.db"
    pip install -r requirements.txt
    ```
 
-5. **Backfill Historical Data (Required before ML Training)**:
+5. **Database Setup & Historical Data Ingestion (Required for ML)**:
+   The SQLite database MUST reside in the `backend/` directory (`backend/railway_eta.db`). 
+   Because the live Train API strictly rate-limits requests (`429 Too Many Requests`), we have provided an offline archive of genuine `where_is_my_train` JSON records.
+   To freshly ingest the genuine offline records and retrain the ML model locally:
    ```bash
-   python backfill_real_historical_data.py
+   # 1. Purges DB and safely parses genuine local JSON payloads in data/raw/
+   python scripts/ingest_archive.py
+   
+   # 2. Rebuilds exactly accurate Metadata based strictly on genuine ETA accuracy  
+   python -c "from app.db.database import SessionLocal; from app.ml.historical_pipeline import HistoricalMLPipeline; pipeline = HistoricalMLPipeline(SessionLocal()); pipeline.train_and_version_model(real_only=True)"
    ```
 
 6. **Start the Backend Server**:
