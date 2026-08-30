@@ -45,7 +45,7 @@ class HistoricalTrainRun(Base):
     distance_to_destination = Column(Float, nullable=True)
     section_id = Column(String, nullable=True)
 
-    source = Column(String, default="where_is_my_train_railradar")
+    source = Column(String, default="unknown")
     created_at = Column(String, default=lambda: datetime.now().isoformat())
 
     __table_args__ = (

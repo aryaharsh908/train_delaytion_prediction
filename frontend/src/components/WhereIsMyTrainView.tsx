@@ -479,15 +479,22 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
                       {/* ML Forecasted Delay Badge */}
                       {st.ml_predicted_delay_minutes !== undefined && (
                         <span style={{
-                          background: 'rgba(168, 85, 247, 0.2)',
-                          border: '1px solid #a855f7',
-                          color: '#e9d5ff',
+                          background: st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? 'rgba(234, 179, 8, 0.2)' : 'rgba(168, 85, 247, 0.2)',
+                          border: st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? '1px solid #eab308' : '1px solid #a855f7',
+                          color: st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? '#fef08a' : '#e9d5ff',
                           padding: '1px 8px',
                           borderRadius: '12px',
                           fontSize: '0.7rem',
-                          fontWeight: 700
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}>
-                          🧠 ML Est: +{st.ml_predicted_delay_minutes}m ({st.ml_forecasted_arrival})
+                          {st.ml_status_flag === 'UNAVAILABLE_SCHEDULE_ESTIMATE' ? (
+                            <>⚠️ Est: +{st.ml_predicted_delay_minutes}m (Schedule-based fallback)</>
+                          ) : (
+                            <>🧠 ML Est: +{st.ml_predicted_delay_minutes}m ({st.ml_forecasted_arrival})</>
+                          )}
                         </span>
                       )}
 

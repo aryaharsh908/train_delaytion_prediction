@@ -16,7 +16,7 @@ class HistoricalNormalizer:
         train_number: str,
         journey_date: str,
         station_data: Dict[str, Any],
-        source: str = "where_is_my_train_railradar",
+        source: str = "unknown",
         train_name: Optional[str] = None,
         train_type: Optional[str] = None
     ) -> HistoricalTrainRun:
@@ -90,7 +90,7 @@ class HistoricalNormalizer:
         """Converts raw API response or wrapper dict into list of HistoricalTrainRun objects."""
         train_num = str(raw_data.get("train_number", "12951"))
         journey_date = str(raw_data.get("journey_date", datetime.now().strftime("%Y-%m-%d")))
-        source = str(raw_data.get("source", "where_is_my_train_railradar"))
+        source = str(raw_data.get("source", "unknown"))
         train_name = raw_data.get("train_name")
         train_type = raw_data.get("train_type")
 

@@ -185,7 +185,7 @@ class SimulationOrchestrator:
     """
     def __init__(self):
         self.is_running = True
-        self.speed_multiplier = 5  # 1 sec = 5 sim mins
+        self.speed_multiplier = 1.0  # Strict 1:1 real-time requested
         self.current_sim_time = datetime.now()
         
         # Engines
@@ -437,15 +437,16 @@ class SimulationOrchestrator:
 
 
     def get_current_timestamp(self) -> str:
-        return datetime.now().strftime("%H:%M:%S") + " IST"
+        return self.current_sim_time.strftime("%H:%M:%S") + " IST"
 
     def tick_simulation(self, delta_real_seconds: float = 1.0):
-        """Advances the simulation by (delta_real_seconds * speed_multiplier) minutes."""
+        """Advances the simulation by 1:1 strict real time."""
         if not self.is_running:
             return
 
-        sim_delta_seconds = delta_real_seconds * (self.speed_multiplier * 60.0)
-        self.current_sim_time += timedelta(seconds=sim_delta_seconds)
+        # STRESS-TEST FIX: Lock simulator clock strictly to real-time IST clock
+        self.current_sim_time = datetime.now()
+        sim_delta_seconds = delta_real_seconds * self.speed_multiplier
         self.kalman.set_speed_multiplier(self.speed_multiplier)
 
         # 1. Evaluate network delay propagation
@@ -453,45 +454,48 @@ class SimulationOrchestrator:
 
         # 2. Advance train telemetry
         for t_id, train in self.active_trains.items():
-            if train.get("status") == "ARRIVED":
-                continue
-                
-            # Apply Kalman Filter to raw position/speed
-            filt_lat, filt_lng, filt_speed = self.kalman.filter_telemetry(
-                t_id, train["lat"], train["lng"], train["speed_kmh"]
-            )
-            train["filtered_lat"] = filt_lat
-            train["filtered_lng"] = filt_lng
-            train["filtered_speed"] = filt_speed
+            try:
+                if train.get("status") == "ARRIVED":
+                    continue
+                    
+                # Apply Kalman Filter to raw position/speed
+                filt_lat, filt_lng, filt_speed = self.kalman.filter_telemetry(
+                    t_id, train["lat"], train["lng"], train["speed_kmh"]
+                )
+                train["filtered_lat"] = filt_lat
+                train["filtered_lng"] = filt_lng
+                train["filtered_speed"] = filt_speed
 
-            # Record telemetry run in online section updater
-            curr_sec = train.get("current_section_id", "NDLS-MTJ")
-            running_time = max(1.0, (train.get("section_progress_km", 1.0) / max(10.0, train.get("speed_kmh", 80.0))) * 60.0)
-            self.online_updater.record_section_run(
-                section_id=curr_sec,
-                actual_running_time_min=running_time,
-                meta={"train_id": t_id, "speed": train["speed_kmh"]}
-            )
-
-            # Advance train position along section
-            train = self.rtis_sim.step_train_movement(train, sim_delta_seconds)
-            
-            # Check Change-Point Detection on speed drop
-            cp_result = self.changepoint_detectors[t_id].add_data_point(train["speed_kmh"])
-            if cp_result["change_detected"] and cp_result["direction"] == "SPEED_DROP":
-                self.coa_sim.log_event(
-                    event_type="UNSCHEDULED_SPEED_DROP",
-                    description=f"Sudden speed drop detected on {train['train_name']} ({train['speed_kmh']} km/h)",
-                    train_id=t_id,
-                    section_id=train["current_section_id"],
-                    severity="HIGH"
+                # Record telemetry run in online section updater
+                curr_sec = train.get("current_section_id", "NDLS-MTJ")
+                running_time = max(1.0, (train.get("section_progress_km", 1.0) / max(10.0, train.get("speed_kmh", 80.0))) * 60.0)
+                self.online_updater.record_section_run(
+                    section_id=curr_sec,
+                    actual_running_time_min=running_time,
+                    meta={"train_id": t_id, "speed": train["speed_kmh"]}
                 )
 
-            # Apply propagated delay addition
-            p_delay = prop_delays.get(t_id, 0.0)
-            if p_delay > 0:
-                train["current_delay_minutes"] += p_delay * 0.05  # Gradually accumulate
-                train["status"] = "SLIGHT_DELAY" if train["current_delay_minutes"] < 20 else "CRITICAL_DELAY"
+                # Advance train position along section
+                train = self.rtis_sim.step_train_movement(train, sim_delta_seconds)
+                
+                # Check Change-Point Detection on speed drop
+                cp_result = self.changepoint_detectors[t_id].add_data_point(train["speed_kmh"])
+                if cp_result["change_detected"] and cp_result["direction"] == "SPEED_DROP":
+                    self.coa_sim.log_event(
+                        event_type="UNSCHEDULED_SPEED_DROP",
+                        description=f"Sudden speed drop detected on {train['train_name']} ({train['speed_kmh']} km/h)",
+                        train_id=t_id,
+                        section_id=train["current_section_id"],
+                        severity="HIGH"
+                    )
+
+                # Apply propagated delay addition
+                p_delay = prop_delays.get(t_id, 0.0)
+                if p_delay > 0:
+                    train["current_delay_minutes"] += p_delay * 0.05  # Gradually accumulate
+                    train["status"] = "SLIGHT_DELAY" if train["current_delay_minutes"] < 20 else "CRITICAL_DELAY"
+            except Exception as e:
+                print(f"Error ticking simulation for train {t_id}: {e}")
 
     def compute_dynamic_eta(self, train_id: str) -> Optional[ETAPredictionSchema]:
         train = self.active_trains.get(train_id)
@@ -506,7 +510,7 @@ class SimulationOrchestrator:
         dest_sched_arr_str = catalog[-1]["sched_arr"] if catalog else "12:00"
 
         # Parse dest_sched_arr_str (e.g. "08:35") into actual scheduled datetime matching current IST date
-        now_dt = datetime.now()
+        now_dt = self.current_sim_time
         try:
             sh, sm = map(int, dest_sched_arr_str.split(":"))
             base_sched_arr = now_dt.replace(hour=sh, minute=sm, second=0, microsecond=0)

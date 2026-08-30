@@ -27,7 +27,11 @@ class HistoricalMLPipeline:
     def extract_features(self, real_only: bool = True, horizon_stations: int = 1) -> Tuple[np.ndarray, np.ndarray, List[Dict[str, Any]], List[str], Dict[str, Any]]:
         query = self.db.query(HistoricalTrainRun) if self.db is not None else None
         if query is not None and real_only:
-            query = query.filter(HistoricalTrainRun.source == "where_is_my_train_railradar")
+            query = query.filter(
+                HistoricalTrainRun.source.isnot(None),
+                HistoricalTrainRun.source != "unknown",
+                HistoricalTrainRun.source != "mock_synthetic_historical"
+            )
         runs = []
         if query is not None:
             runs = query.order_by(
@@ -169,9 +173,9 @@ class HistoricalMLPipeline:
 
         return X_train, y_train, X_val, y_val, X_test, y_test
 
-    def train_and_version_model(self, hard_examples: Tuple = None) -> Dict[str, Any]:
+    def train_and_version_model(self, hard_examples: Tuple = None, real_only: bool = True) -> Dict[str, Any]:
         logger.info("Starting unified historical ML model training pipeline...")
-        X, y, meta, feature_names, provenance = self.extract_features()
+        X, y, meta, feature_names, provenance = self.extract_features(real_only=real_only)
         if len(X) == 0:
             logger.error("No training data available.")
             raise ValueError("no training data — run backfill_real_historical_data.py first")

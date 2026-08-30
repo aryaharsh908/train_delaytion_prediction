@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -28,7 +29,8 @@ async def simulation_loop():
             orchestrator.tick_simulation(delta_real_seconds=1.0)
             await websocket.broadcast_state()
         except Exception as e:
-            print(f"Error in simulation loop: {e}")
+            print(f"FATAL Simulation Loop Error: {e}")
+            traceback.print_exc()
         await asyncio.sleep(1.0)
 
 @asynccontextmanager

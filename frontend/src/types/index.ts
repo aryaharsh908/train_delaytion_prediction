@@ -155,6 +155,7 @@ export interface StationRouteItem {
   departure_delay_minutes: number;
   section_recovery_minutes?: number;
   cascading_breakdown?: Record<string, number>;
+  ml_status_flag?: string;
   status: string;
   is_current_position: boolean;
   delay_reasons: ETABreakdownFactor[];

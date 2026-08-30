@@ -101,5 +101,13 @@
     "validation_rmse": 4.59,
     "crps_score": 4.995,
     "created_at": "2026-08-29T20:26:13.174961"
+  },
+  {
+    "version": "v028",
+    "filename": "eta_model_v028.pkl",
+    "validation_mae": 4.84,
+    "validation_rmse": 5.99,
+    "crps_score": 5.093,
+    "created_at": "2026-08-30T15:06:15.381426"
   }
 ]
