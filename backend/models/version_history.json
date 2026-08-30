@@ -117,5 +117,53 @@
     "validation_rmse": 0.0,
     "crps_score": 0.0,
     "created_at": "2026-08-30T16:08:43.234549"
+  },
+  {
+    "version": "v034",
+    "filename": "eta_model_v034.pkl",
+    "validation_mae": 0.0,
+    "validation_rmse": 0.0,
+    "crps_score": 0.0,
+    "created_at": "2026-08-30T23:41:23.332223"
+  },
+  {
+    "version": "v037",
+    "filename": "eta_model_v037.pkl",
+    "validation_mae": 0.01,
+    "validation_rmse": 0.02,
+    "crps_score": 0.171,
+    "created_at": "2026-08-30T23:56:06.774717"
+  },
+  {
+    "version": "v040",
+    "filename": "eta_model_v040.pkl",
+    "validation_mae": 0.01,
+    "validation_rmse": 0.02,
+    "crps_score": 0.171,
+    "created_at": "2026-08-30T23:57:19.501849"
+  },
+  {
+    "version": "v043",
+    "filename": "eta_model_v043.pkl",
+    "validation_mae": 0.01,
+    "validation_rmse": 0.02,
+    "crps_score": 0.171,
+    "created_at": "2026-08-30T23:57:58.042165"
+  },
+  {
+    "version": "v046",
+    "filename": "eta_model_v046.pkl",
+    "validation_mae": 0.01,
+    "validation_rmse": 0.02,
+    "crps_score": 0.168,
+    "created_at": "2026-08-30T23:59:06.686963"
+  },
+  {
+    "version": "v049",
+    "filename": "eta_model_v049.pkl",
+    "validation_mae": 0.02,
+    "validation_rmse": 0.09,
+    "crps_score": 0.205,
+    "created_at": "2026-08-31T00:06:19.972033"
   }
 ]

@@ -940,6 +940,15 @@ class SimulationOrchestrator:
 
     def get_train_route_timeline(self, train_id: str, journey_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Returns the full station-by-station route timeline for a train."""
+        from datetime import datetime
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        if journey_date and journey_date != today_str:
+            return self._get_historical_route_timeline(train_id, journey_date)
+        
+        return self._get_live_route_timeline(train_id)
+
+    def _get_live_route_timeline(self, train_id: str) -> Optional[Dict[str, Any]]:
         normalized_id = train_id if train_id.startswith("TRAIN_") else f"TRAIN_{train_id}"
         clean_train_num = train_id.replace("TRAIN_", "")
 
@@ -1220,7 +1229,9 @@ class SimulationOrchestrator:
 
         # Determine active event description or fallback
         last_event_desc = get_val(found_train, "last_event_description", "")
-        if last_event_desc:
+        if current_idx >= len(stations_def) - 1 and status_str == "PASSED":
+            status_msg = f"Arrived at {dest_val} — journey completed"
+        elif last_event_desc:
             status_msg = f"{last_event_desc} (Current delay: {current_delay:.0f} mins)"
         else:
             status_msg = f"Running {current_delay:.0f} min late near {next_st_name}" if current_delay > 5 else "Running On Time"
@@ -1243,3 +1254,80 @@ class SimulationOrchestrator:
             "route_items": route_items
         }
 
+    def _get_historical_route_timeline(self, train_id: str, journey_date: str) -> Optional[Dict[str, Any]]:
+        from app.db.database import SessionLocal
+        from app.db.models import HistoricalTrainRun
+        
+        db = SessionLocal()
+        try:
+            clean_train_num = train_id.replace("TRAIN_", "")
+            
+            runs = db.query(HistoricalTrainRun).filter(
+                HistoricalTrainRun.train_number == clean_train_num,
+                HistoricalTrainRun.journey_date == journey_date
+            ).order_by(HistoricalTrainRun.station_sequence).all()
+            
+            if not runs:
+                # Need to return a friendly structure so frontend doesn't crash but shows "No Data"
+                return {
+                    "train_id": train_id,
+                    "train_number": clean_train_num,
+                    "train_name": "No Data Found",
+                    "origin_station_name": "-",
+                    "destination_station_name": "-",
+                    "current_station_name": "-",
+                    "next_station_name": "-",
+                    "total_delay_minutes": 0.0,
+                    "status_message": f"No historical data recorded for {journey_date}",
+                    "formatted_confidence_eta": "-",
+                    "last_updated": self.get_current_timestamp(),
+                    "route_items": []
+                }
+                
+            origin = runs[0].station_name
+            dest = runs[-1].station_name
+            
+            route_items = []
+            for run in runs:
+                route_items.append({
+                    "station_id": run.station_code,
+                    "station_code": run.station_code,
+                    "station_name": run.station_name,
+                    "distance_km": run.distance_from_origin or 0.0,
+                    "platform_number": "1", # default placeholder for history
+                    "scheduled_arrival": run.scheduled_arrival or "-",
+                    "scheduled_departure": run.scheduled_departure or "-",
+                    "forecasted_arrival": run.actual_arrival or "-",
+                    "forecasted_departure": run.actual_departure or "-",
+                    "arrival_delay_minutes": run.arrival_delay_minutes or 0.0,
+                    "departure_delay_minutes": run.departure_delay_minutes or 0.0,
+                    "ml_forecasted_arrival": "-",
+                    "eta_p10": None,
+                    "eta_p50": None,
+                    "eta_p90": None,
+                    "confidence_margin_minutes": None,
+                    "live_telemetry_delay_minutes": run.departure_delay_minutes or 0.0,
+                    "ml_predicted_delay_minutes": 0.0,
+                    "delay_difference_minutes": 0.0,
+                    "status": "PASSED",
+                    "is_current_position": False,
+                    "ml_status_flag": "HISTORICAL",
+                    "delay_reasons": []
+                })
+                
+            return {
+                "train_id": train_id,
+                "train_number": clean_train_num,
+                "train_name": runs[0].train_name or f"Train {clean_train_num}",
+                "origin_station_name": origin,
+                "destination_station_name": dest,
+                "current_station_name": dest,
+                "next_station_name": "-",
+                "total_delay_minutes": runs[-1].arrival_delay_minutes or 0.0,
+                "status_message": f"Historical Journey Completed (Dest: {dest})",
+                "formatted_confidence_eta": "-",
+                "last_updated": self.get_current_timestamp(),
+                "route_items": route_items
+            }
+        finally:
+            db.close()

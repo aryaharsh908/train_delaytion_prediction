@@ -198,6 +198,11 @@ body {
   background: rgba(15, 23, 42, 0.95) !important;
 }
 
+/* Smooth interpolation for moving train markers without polling faster */
+.leaflet-marker-icon.custom-train-marker {
+  transition: transform 3s linear !important;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
