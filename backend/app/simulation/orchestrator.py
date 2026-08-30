@@ -1004,39 +1004,48 @@ class SimulationOrchestrator:
 
         stations_def = route_catalogs.get(str(train_num_val), route_catalogs["12951"])
 
-        # Determine current active station index in schedule
-        cur_st_name_val = get_val(found_train, "current_station_name", "")
-        cur_st_name_val_upper = str(cur_st_name_val).upper() if cur_st_name_val else ""
-        cur_st_code_val = get_val(found_train, "current_station_code", "")
-
-        current_idx = -1
-        # 1. Direct code/name match or fuzzy match
+        # Force sync current_idx to realistic Wall-Clock schedule
+        from datetime import datetime
+        now_time = datetime.now()
+        current_hrs, current_mins = now_time.hour, now_time.minute
+        current_absolute_mins = current_hrs * 60 + current_mins
+        
+        start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
+        start_abs_mins = start_h * 60 + start_m
+        
+        last_arr_h, last_arr_m = map(int, stations_def[-1]["sched_arr"].split(":"))
+        last_abs_mins = last_arr_h * 60 + last_arr_m
+        
+        trip_duration = (last_abs_mins - start_abs_mins) % (24 * 60)
+        elapsed_mins_since_start = (current_absolute_mins - start_abs_mins) % (24 * 60)
+        
+        if elapsed_mins_since_start > trip_duration + 300: 
+            if elapsed_mins_since_start > 12 * 60:
+                elapsed_mins_since_start = 0 
+            else:
+                elapsed_mins_since_start = trip_duration 
+                
+        real_time_idx = 0
         for idx, st in enumerate(stations_def):
-            st_c = st["code"].upper()
-            st_n = st["name"].upper()
-            nxt_id_u = str(next_st_id).upper() if next_st_id else ""
-            nxt_nm_u = str(next_st_name).upper() if next_st_name else ""
-
-            if (nxt_id_u and st_c == nxt_id_u) or \
-               (cur_st_code_val and st_c == str(cur_st_code_val).upper()) or \
-               (nxt_nm_u and (nxt_nm_u in st_n or st_n in nxt_nm_u)) or \
-               (cur_st_name_val_upper and (cur_st_name_val_upper in st_n or st_n in cur_st_name_val_upper)):
-                current_idx = idx
+            arr_h, arr_m = map(int, st["sched_arr"].split(":"))
+            arr_abs_mins = arr_h * 60 + arr_m
+            st_elapsed = (arr_abs_mins - start_abs_mins) % (24 * 60)
+            
+            if elapsed_mins_since_start >= st_elapsed + current_delay:
+                real_time_idx = idx
+            else:
                 break
-
-        # 2. Check station_dep_delays_map or station_delays_map for highest passed station index
-        if current_idx == -1 and (st_dep_delays_map or st_delays_map):
-            for idx, st in enumerate(stations_def):
-                if st["code"] in st_dep_delays_map or st["code"] in st_delays_map:
-                    current_idx = idx
-
-        if current_idx == -1 or current_idx >= len(stations_def):
-            current_idx = 1
+                
+        current_idx = min(len(stations_def) - 1, real_time_idx + 1)
+        
+        # Determine actual header station states
+        actual_next_station = stations_def[current_idx]["name"]
+        actual_prev_station = stations_def[current_idx-1]["name"] if current_idx > 0 else stations_def[0]["name"]
 
         route_items = []
         passed_current = False
         accumulated_ml_delay = max(0.0, current_delay)
-        active_section_id = get_val(found_train, "current_section_id", "NDLS-MTJ")
+        active_section_id = f"{stations_def[current_idx-1]['code'] if current_idx > 0 else stations_def[0]['code']}-{stations_def[current_idx]['code']}"
 
         # Known major junction keywords for congestion / shunting delay additions
         junction_keywords = ["JN", "JUNCTION", "CENTRAL", "TERMINUS", "CANTT", "DDU", "CNB", "PRYJ", "RTM", "BRC", "BPL", "NGP", "BPQ", "BZA", "KPD", "TVC"]
@@ -1228,13 +1237,11 @@ class SimulationOrchestrator:
 
 
         # Determine active event description or fallback
-        last_event_desc = get_val(found_train, "last_event_description", "")
-        if current_idx >= len(stations_def) - 1 and status_str == "PASSED":
+        # Determine actual textual marker
+        if current_idx >= len(stations_def) - 1:
             status_msg = f"Arrived at {dest_val} — journey completed"
-        elif last_event_desc:
-            status_msg = f"{last_event_desc} (Current delay: {current_delay:.0f} mins)"
         else:
-            status_msg = f"Running {current_delay:.0f} min late near {next_st_name}" if current_delay > 5 else "Running On Time"
+            status_msg = f"Running {current_delay:.0f} min late near {actual_next_station}" if current_delay > 5 else f"Running On Time near {actual_next_station}"
 
         eta_prediction = self.compute_dynamic_eta(train_id_val)
         formatted_eta = eta_prediction.formatted_confidence_eta if eta_prediction else f"{current_delay:.0f} min late"
@@ -1245,8 +1252,8 @@ class SimulationOrchestrator:
             "train_name": train_name_val,
             "origin_station_name": origin_val,
             "destination_station_name": dest_val,
-            "current_station_name": get_val(found_train, "current_station_name", next_st_name),
-            "next_station_name": next_st_name,
+            "current_station_name": actual_prev_station if current_idx < len(stations_def)-1 else dest_val,
+            "next_station_name": actual_next_station if current_idx < len(stations_def)-1 else "-",
             "total_delay_minutes": current_delay,
             "status_message": status_msg,
             "last_updated": self.get_current_timestamp(),
