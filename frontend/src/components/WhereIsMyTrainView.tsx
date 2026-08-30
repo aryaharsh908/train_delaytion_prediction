@@ -567,34 +567,38 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
             </h2>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-              <span style={{
-                background: isDelayed ? 'rgba(239, 68, 68, 0.18)' : 'rgba(16, 185, 129, 0.18)',
-                border: isDelayed ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                color: isDelayed ? '#f87171' : '#34d399',
-                padding: '3px 10px',
-                borderRadius: '16px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <span className={`pulse-dot ${isDelayed ? 'pulse-dot-red' : 'pulse-dot-green'}`}></span>
-                <span>{isDelayed ? `Delayed by ${Math.round(routeData.total_delay_minutes)} mins` : 'Running On Time'}</span>
-              </span>
+              {selectedDate === todayISO && routeData.route_items.length > 0 && (
+                <>
+                  <span style={{
+                    background: isDelayed ? 'rgba(239, 68, 68, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+                    border: isDelayed ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                    color: isDelayed ? '#f87171' : '#34d399',
+                    padding: '3px 10px',
+                    borderRadius: '16px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span className={`pulse-dot ${isDelayed ? 'pulse-dot-red' : 'pulse-dot-green'}`}></span>
+                    <span>{isDelayed ? `Delayed by ${Math.round(routeData.total_delay_minutes)} mins` : 'Running On Time'}</span>
+                  </span>
 
-              {routeData.formatted_confidence_eta && (
-                <span style={{
-                  background: 'rgba(56, 189, 248, 0.15)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  color: '#38bdf8',
-                  padding: '3px 10px',
-                  borderRadius: '16px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700
-                }}>
-                  🎯 ML Forecast: {routeData.formatted_confidence_eta}
-                </span>
+                  {routeData.formatted_confidence_eta && routeData.formatted_confidence_eta !== "-" && (
+                    <span style={{
+                      background: 'rgba(56, 189, 248, 0.15)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38bdf8',
+                      padding: '3px 10px',
+                      borderRadius: '16px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700
+                    }}>
+                      🎯 ML Forecast: {routeData.formatted_confidence_eta}
+                    </span>
+                  )}
+                </>
               )}
 
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
