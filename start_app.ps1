@@ -4,16 +4,18 @@ Write-Host "============================================================" -Foreg
 Write-Host " Starting SIH26028 Dynamic Train ETA Forecast System " -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Cyan
 
+$RootDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+
 # 1. Start Backend in new process or window
 Write-Host "[1/2] Starting FastAPI Backend on http://127.0.0.1:8000..." -ForegroundColor Yellow
-Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "Set-Location backend; .\venv\Scripts\python.exe run.py"
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ".\venv\Scripts\python.exe -m uvicorn app.main:app --port 8000 --reload" -WorkingDirectory "$RootDir\backend"
 
 # Wait 3 seconds for backend server startup
 Start-Sleep -Seconds 3
 
 # 2. Start Frontend in new process or window
 Write-Host "[2/2] Starting React Vite Operations Dashboard on http://localhost:3000..." -ForegroundColor Yellow
-Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "`$env:PATH = 'C:\Program Files\nodejs;' + `$env:PATH; Set-Location frontend; & 'C:\Program Files\nodejs\npm.cmd' run dev"
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "`$env:PATH = 'C:\Program Files\nodejs;' + `$env:PATH; & 'C:\Program Files\nodejs\npm.cmd' run dev" -WorkingDirectory "$RootDir\frontend"
 
 Write-Host ""
 Write-Host "System initialized successfully!" -ForegroundColor Green
