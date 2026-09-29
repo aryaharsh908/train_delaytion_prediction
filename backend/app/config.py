@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./railway_eta.db"
 
-    # Where Is My Train / RailRadar API Configuration
-    WHERE_IS_MY_TRAIN_API_KEY: str = "rg_91e5671b9dff48c999432f1e89df2793"
-    WHERE_IS_MY_TRAIN_BASE_URL: str = "https://api.railradar.in/v1"
+    # Where Is My Train / RailRadar API Configuration (loaded strictly from environment/.env)
+    WHERE_IS_MY_TRAIN_API_KEY: str = ""
+    WHERE_IS_MY_TRAIN_BASE_URL: str = ""
     WHERE_IS_MY_TRAIN_API_VERSION: str = "v1"
     WHERE_IS_MY_TRAIN_CLIENT_ID: str = ""
     WHERE_IS_MY_TRAIN_CLIENT_SECRET: str = ""
@@ -36,10 +36,53 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
+        env_file = [
+            os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+            os.path.join(os.path.dirname(__file__), "..", ".env"),
+            ".env"
+        ]
         extra = "ignore"
 
 settings = Settings()
 os.makedirs(settings.MODEL_DIR, exist_ok=True)
 os.makedirs(settings.RAW_DATA_DIR, exist_ok=True)
+
+def reload_settings() -> Settings:
+    global settings
+    # Clear any cached env vars in os.environ for these specific keys so .env takes precedence
+    for k in ["WHERE_IS_MY_TRAIN_API_KEY", "WHERE_IS_MY_TRAIN_BASE_URL", "WHERE_IS_MY_TRAIN_AUTH_HEADER"]:
+        if k in os.environ:
+            del os.environ[k]
+    settings = Settings()
+    return settings
+
+def save_api_key(new_key: str) -> Settings:
+    new_key = new_key.strip()
+    # Update root and backend .env files
+    env_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+        os.path.join(os.path.dirname(__file__), "..", ".env")
+    ]
+    for p in env_paths:
+        norm_p = os.path.normpath(p)
+        lines = []
+        if os.path.exists(norm_p):
+            with open(norm_p, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        
+        found = False
+        new_lines = []
+        for line in lines:
+            if line.startswith("WHERE_IS_MY_TRAIN_API_KEY="):
+                new_lines.append(f"WHERE_IS_MY_TRAIN_API_KEY={new_key}\n")
+                found = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.insert(0, f"WHERE_IS_MY_TRAIN_API_KEY={new_key}\n")
+        
+        with open(norm_p, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+            
+    return reload_settings()
 

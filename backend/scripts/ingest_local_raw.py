@@ -40,7 +40,8 @@ def process_and_ingest():
     
     new_rows = 0
     skipped_journeys = 0
-    trains = ['12302', '12626', '12951']
+    train_dirs = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d)) and d.startswith("train_")] if os.path.exists(raw_dir) else []
+    trains = [d.replace("train_", "") for d in train_dirs]
     for train in trains:
         path = os.path.join(raw_dir, f"train_{train}", "**", "*.json")
         files = glob.glob(path, recursive=True)

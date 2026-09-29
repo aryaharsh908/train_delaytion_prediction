@@ -4,9 +4,13 @@ import L from 'leaflet';
 import { TrainState, SimulationState } from '../types';
 
 interface RailwayMapProps {
-  simulationState: SimulationState | null;
-  networkState: { stations: any[]; sections: any[] } | null;
-  onSelectTrain: (train: TrainState) => void;
+  simulationState?: SimulationState | null;
+  networkState?: { stations: any[]; sections: any[] } | null;
+  stations?: any[];
+  sections?: any[];
+  trains?: TrainState[];
+  selectedTrain?: TrainState | null;
+  onSelectTrain?: ((train: TrainState) => void) | React.Dispatch<React.SetStateAction<TrainState | null>>;
   selectedTrainId?: string;
 }
 
@@ -76,10 +80,19 @@ const createStationIcon = (station: any) => {
 export const RailwayMap: React.FC<RailwayMapProps> = ({
   simulationState,
   networkState,
+  stations: propStations,
+  sections: propSections,
+  trains: propTrains,
+  selectedTrain,
   onSelectTrain,
   selectedTrainId
 }) => {
   const defaultCenter: [number, number] = [26.0, 78.0]; // Centered on North-Central India trunk corridor
+
+  const activeStations = networkState?.stations || propStations || [];
+  const activeSections = networkState?.sections || propSections || [];
+  const activeTrains = simulationState?.trains || propTrains || [];
+  const activeSelectedId = selectedTrainId || selectedTrain?.train_id || selectedTrain?.train_number;
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -96,7 +109,7 @@ export const RailwayMap: React.FC<RailwayMapProps> = ({
         />
 
         {/* Render Railway Sections (Polylines) */}
-        {networkState?.sections.map((sec) => {
+        {activeSections.map((sec) => {
           const coords: [number, number][] = sec.coords || [];
           if (coords.length < 2) return null;
 
@@ -154,7 +167,7 @@ export const RailwayMap: React.FC<RailwayMapProps> = ({
         })}
 
         {/* Render Stations (Markers) */}
-        {networkState?.stations.map((st) => (
+        {activeStations.map((st) => (
           <Marker
             key={st.id}
             position={[st.lat, st.lng]}
@@ -171,13 +184,13 @@ export const RailwayMap: React.FC<RailwayMapProps> = ({
         ))}
 
         {/* Render Active Trains (Moving Markers) */}
-        {simulationState?.trains.map((train) => (
+        {activeTrains.map((train) => (
           <Marker
             key={train.train_id}
             position={[train.latitude, train.longitude]}
-            icon={createTrainIcon(train, train.train_id === selectedTrainId)}
+            icon={createTrainIcon(train, train.train_id === activeSelectedId || train.train_number === activeSelectedId)}
             eventHandlers={{
-              click: () => onSelectTrain(train)
+              click: () => onSelectTrain && onSelectTrain(train)
             }}
           >
             <Popup>

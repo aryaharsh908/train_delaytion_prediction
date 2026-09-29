@@ -104,7 +104,7 @@ c:\Users\aryah\train_schedule\
 
 ```env
 # Official RailRadar / Where Is My Train API Credentials
-WHERE_IS_MY_TRAIN_API_KEY=rg_91e5671b9dff48c999432f1e89df2793
+WHERE_IS_MY_TRAIN_API_KEY=your_railradar_api_key_here
 WHERE_IS_MY_TRAIN_BASE_URL=https://api.railradar.in/v1
 WHERE_IS_MY_TRAIN_AUTH_HEADER=x-api-key
 WHERE_IS_MY_TRAIN_CLIENT_ID=

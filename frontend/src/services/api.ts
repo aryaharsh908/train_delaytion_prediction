@@ -1,4 +1,17 @@
-import { SimulationState, TrainState, ETAPrediction, ModelMetrics, COAEvent, TrainRouteResponse, CounterfactualRequest, CounterfactualResponse } from '../types';
+import {
+  SimulationState,
+  TrainState,
+  ETAPrediction,
+  ModelMetrics,
+  COAEvent,
+  TrainRouteResponse,
+  CounterfactualRequest,
+  CounterfactualResponse,
+  TrainETAComparison,
+  RankedJunctionConflict,
+  DownstreamPropagationResponse,
+  CorridorHealthSummary
+} from '../types';
 
 const API_BASE_URL = '/api/v1';
 
@@ -6,7 +19,10 @@ const API_BASE_URL = '/api/v1';
 export async function fetchTrains(): Promise<TrainState[]> {
   const res = await fetch(`${API_BASE_URL}/trains`);
   if (!res.ok) throw new Error('Failed to fetch trains');
-  return res.json();
+  const data = await res.json();
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.trains)) return data.trains;
+  return [];
 }
 
 export async function fetchTrainDetails(trainId: string): Promise<TrainState> {
@@ -138,5 +154,58 @@ export async function fetchSystemHealth() {
 export async function fetchSectionDelays() {
   const res = await fetch(`${API_BASE_URL}/analytics/section-delays`);
   if (!res.ok) throw new Error('Failed to fetch section delays');
+  return res.json();
+}
+
+export async function fetchCorridorHealth(): Promise<CorridorHealthSummary> {
+  const res = await fetch(`${API_BASE_URL}/corridor/health`);
+  if (!res.ok) throw new Error('Failed to fetch corridor health');
+  return res.json();
+}
+
+export async function fetchTrainETAComparison(trainId: string): Promise<TrainETAComparison> {
+  const res = await fetch(`${API_BASE_URL}/corridor/train/${encodeURIComponent(trainId)}/eta-comparison`);
+  if (!res.ok) throw new Error(`Failed to fetch ETA comparison for train ${trainId}`);
+  return res.json();
+}
+
+export async function fetchRankedJunctionConflicts(): Promise<RankedJunctionConflict[]> {
+  const res = await fetch(`${API_BASE_URL}/corridor/junctions/conflicts`);
+  if (!res.ok) throw new Error('Failed to fetch ranked junction conflicts');
+  return res.json();
+}
+
+export async function fetchDownstreamPropagation(
+  junctionCode?: string,
+  trainId?: string
+): Promise<DownstreamPropagationResponse> {
+  const params = new URLSearchParams();
+  if (junctionCode) params.set('junction_code', junctionCode);
+  if (trainId) params.set('train_id', trainId);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE_URL}/corridor/propagation${qs}`);
+  if (!res.ok) throw new Error('Failed to fetch downstream delay propagation');
+  return res.json();
+}
+
+export async function runCorridorCounterfactual(
+  req: CounterfactualRequest
+): Promise<CounterfactualResponse> {
+  const res = await fetch(`${API_BASE_URL}/corridor/counterfactual`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req)
+  });
+  if (!res.ok) throw new Error('Failed to run corridor counterfactual simulation');
+  return res.json();
+}
+
+export async function syncCorridorTrain(trainNumber: string): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/corridor/sync-train`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ train_number: trainNumber })
+  });
+  if (!res.ok) throw new Error(`Failed to sync train ${trainNumber}`);
   return res.json();
 }

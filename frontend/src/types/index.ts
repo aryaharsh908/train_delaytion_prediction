@@ -172,14 +172,16 @@ export interface TrainRouteResponse {
   status_message: string;
   total_delay_minutes: number;
   last_updated: string;
+  active_journey_date?: string;
   formatted_confidence_eta?: string;
   route_items: StationRouteItem[];
 }
 
 export interface CounterfactualRequest {
-  train_id: string;
-  train_number: string;
-  intervention_type: 'PRIORITY_BOOST' | 'TSR_IMPOSITION' | 'WEATHER_SPEED_DROP';
+  train_id?: string;
+  train_number?: string;
+  intervention_type?: string;
+  injected_delay_minutes?: number;
   section_id?: string;
   corridor_name?: string;
   speed_restriction_kmh?: number;
@@ -191,11 +193,18 @@ export interface CounterfactualRequest {
 export interface CounterfactualResponse {
   intervention_type: string;
   target_id: string;
+  train_name?: string;
+  train_number?: string;
   baseline_eta: string;
   intervention_eta: string;
+  baseline_delay_minutes?: number;
+  intervention_delay_minutes?: number;
   eta_p10: string;
   eta_p50: string;
   eta_p90: string;
+  delay_p10?: number;
+  delay_p50?: number;
+  delay_p90?: number;
   confidence_score: number;
   delay_change_minutes: number;
   network_passenger_minutes_added: number;
@@ -203,4 +212,137 @@ export interface CounterfactualResponse {
   junction_platform_conflicts: number;
   cascading_train_summaries: any[];
   route_comparison: any[];
+  corridor_risk?: string;
+  escalated_risk?: string;
+  total_cascaded_impact_min?: number;
+  net_cascaded_escalation_min?: number;
+  downstream_absorption?: any[];
+}
+
+export interface TrajectoryPoint {
+  station_code: string;
+  station_name: string;
+  distance_km: number;
+  scheduled_time_str: string;
+  reactive_time_str: string;
+  proactive_time_str: string;
+  p10_time_str: string;
+  p90_time_str: string;
+  scheduled_delay_min: number;
+  reactive_delay_min: number;
+  proactive_delay_min: number;
+  p10_delay_min: number;
+  p90_delay_min: number;
+  is_conflict_point: boolean;
+  conflict_label?: string | null;
+}
+
+export interface TrainETAComparison {
+  train_id: string;
+  train_number: string;
+  train_name: string;
+  train_type: string;
+  origin_station_name: string;
+  destination_station_name: string;
+  current_station_name: string;
+  speed_kmh: number;
+  scheduled_timetable_eta: string;
+  current_reactive_estimate: string;
+  current_delay_minutes: number;
+  proactive_forecast_eta: string;
+  proactive_delay_minutes: number;
+  uncertainty_interval: string;
+  eta_p10: string;
+  eta_p50: string;
+  eta_p90: string;
+  delay_p10: number;
+  delay_p50: number;
+  delay_p90: number;
+  forecast_confidence_pct: number;
+  status_message: string;
+  trajectory_band: TrajectoryPoint[];
+}
+
+export interface JunctionConflictFactorBreakdown {
+  converging_traffic_density_pct: number;
+  approach_track_congestion_pct: number;
+  priority_clearance_precedence_pct: number;
+}
+
+export interface ApproachingService {
+  train_number: string;
+  train_name: string;
+  train_id: string;
+  sched_arr: string;
+  expected_arr: string;
+  delay_min: number;
+}
+
+export interface RankedJunctionConflict {
+  station_code: string;
+  station_name: string;
+  station_id: string;
+  conflict_score: number;
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
+  approaching_trains_count: number;
+  approaching_eta_min: number;
+  expected_impact_window_min: string;
+  impact_min_low: number;
+  impact_min_high: number;
+  factor_breakdown: JunctionConflictFactorBreakdown;
+  affected_services: ApproachingService[];
+  lat?: number;
+  lng?: number;
+}
+
+export interface PropagationChainItem {
+  step: number;
+  type: 'SOURCE_TRAIN' | 'JUNCTION_BOTTLENECK' | 'DOWNSTREAM_SERVICE';
+  title: string;
+  subtitle: string;
+  delay_display: string;
+  delay_minutes?: number;
+  induced_delay_minutes?: number;
+  total_predicted_delay?: number;
+  risk_badge: string;
+  train_id?: string;
+  train_number?: string;
+  station_code?: string;
+  conflict_score?: number;
+}
+
+export interface DownstreamAbsorptionRecord {
+  train_number: string;
+  train_name: string;
+  baseline_induced_delay: string;
+  simulated_induced_delay: string;
+  net_escalation: string;
+  net_escalation_minutes: number;
+}
+
+export interface DownstreamPropagationResponse {
+  source_train_id: string;
+  source_train_number: string;
+  source_train_name: string;
+  source_delay_minutes: number;
+  critical_junction_code: string;
+  critical_junction_name: string;
+  critical_conflict_score: number;
+  critical_risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
+  downstream_exposed_services_count: number;
+  total_induced_network_delay_minutes: number;
+  propagation_chain: PropagationChainItem[];
+  downstream_absorption: DownstreamAbsorptionRecord[];
+}
+
+export interface CorridorHealthSummary {
+  corridor_name: string;
+  subtitle: string;
+  active_trains: number;
+  junctions_at_risk: number;
+  bottleneck_sections: number;
+  affected_services: number;
+  corridor_health: number;
+  corridor_health_status: string;
+  system_status: string;
 }

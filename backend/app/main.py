@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.simulation.orchestrator import SimulationOrchestrator
-from app.api import trains, simulation, events, network, model, websocket, historical, ml_retrain, health, counterfactual
+from app.api import trains, simulation, events, network, model, websocket, historical, ml_retrain, health, counterfactual, corridor
 from app.db.init_db import init_db
 from app.db.database import SessionLocal
 from app.services.historical_collector import ResumableHistoricalCollector
@@ -20,6 +20,7 @@ network.set_orchestrator(orchestrator)
 websocket.set_orchestrator(orchestrator)
 counterfactual.set_orchestrator(orchestrator)
 ml_retrain.set_orchestrator(orchestrator)
+corridor.set_orchestrator(orchestrator)
 
 simulation_task = None
 
@@ -77,6 +78,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import os
+from fastapi.staticfiles import StaticFiles
+
 app.include_router(trains.router, prefix=settings.API_V1_STR)
 app.include_router(simulation.router, prefix=settings.API_V1_STR)
 app.include_router(events.router, prefix=settings.API_V1_STR)
@@ -86,9 +90,10 @@ app.include_router(historical.router, prefix=settings.API_V1_STR)
 app.include_router(ml_retrain.router, prefix=settings.API_V1_STR)
 app.include_router(health.router, prefix=settings.API_V1_STR)
 app.include_router(counterfactual.router, prefix=settings.API_V1_STR)
+app.include_router(corridor.router, prefix=settings.API_V1_STR)
 app.include_router(websocket.router)
 
-@app.get("/")
+@app.get("/api-status")
 def root():
     return {
         "system": settings.PROJECT_NAME,
@@ -97,6 +102,11 @@ def root():
         "docs": "/docs"
     }
 
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+if os.path.exists(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

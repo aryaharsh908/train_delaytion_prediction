@@ -193,7 +193,7 @@ class TemporalGraphNN:
                 X_train[indices, 8:9] / 30.0,                    # section median (normalized)
                 X_train[indices, 9:10] / 10.0,                   # section std (normalized)
                 X_train[indices, 10:11] / 60.0,                  # cascading (normalized)
-                np.reshape(X_train[indices, 12] / 15.0, (n_samples, 1)) if X_train.shape[1] > 12 else np.zeros((n_samples, 1)) # weather
+                np.reshape(X_train[indices, -1] / 15.0, (n_samples, 1)) if X_train.shape[1] > 10 else np.zeros((n_samples, 1)) # weather
             ])  # n_samples x 6
 
             # Forward pass: node path
@@ -258,7 +258,7 @@ class TemporalGraphNN:
             X[:, 8:9] / 30.0,
             X[:, 9:10] / 10.0,
             X[:, 10:11] / 60.0,
-            np.reshape(X[:, 12] / 15.0, (n, 1)) if X.shape[1] > 12 else np.zeros((n, 1))
+            np.reshape(X[:, -1] / 15.0, (n, 1)) if X.shape[1] > 10 else np.zeros((n, 1))
         ])
 
         node_in = np.hstack([seqs, dists, delays / 60.0])

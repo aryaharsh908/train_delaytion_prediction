@@ -29,25 +29,31 @@ class FeatureEngineer:
                                      sched_section_travel_min: float,
                                      delay_delta_vs_previous: float = 0.0,
                                      weekday_median: float = None,
+                                     calendar_date_anomaly: float = 0.0,
+                                     chain_delay_recovery_rate: float = 0.0,
                                      weather_penalty: float = 0.0,
                                      current_time: datetime = None) -> np.ndarray:
         if current_time is None:
             current_time = datetime.now()
             
         type_code = cls.TYPE_MAP.get(train_type, 3)
+        same_wd_delay = float(weekday_median if weekday_median is not None else arrival_delay)
+        
         vec = np.array([[
             float(route_sequence),                       # station_sequence
             float(distance_from_origin),                  # distance_from_origin
             max(0.0, 1385.0 - float(distance_from_origin)), # distance_to_destination
             float(arrival_delay),                         # arrival_delay_minutes
             float(arrival_delay + 2.0),                   # departure_delay_minutes
-            float(current_time.weekday()),                           # day_of_week
-            float(current_time.month),                                          # month
-            float(current_time.hour),                                         # time_of_day_hour
+            float(current_time.weekday()),                # day_of_week
+            float(current_time.month),                    # month
+            float(current_time.hour + current_time.minute / 60.0), # time_of_day_hour
             float(sched_section_travel_min),              # section_historical_median_time
             1.5,                                          # section_historical_std_dev
             float(delay_delta_vs_previous),               # delay_delta_vs_previous
-            float(weekday_median if weekday_median is not None else sched_section_travel_min), # weekday_historical_median
+            same_wd_delay,                                # same_weekday_historical_delay (2-yr Saturday pattern)
+            float(calendar_date_anomaly),                 # calendar_date_anomaly_delay (specific date anomaly in 2 yrs)
+            float(chain_delay_recovery_rate),             # chain_delay_recovery_rate (recovery dynamics along chain)
             float(weather_penalty)                        # weather_penalty
         ]])
         return vec

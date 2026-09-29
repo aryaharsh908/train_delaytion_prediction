@@ -167,6 +167,9 @@ class StationRouteItem(BaseModel):
     departure_delay_minutes: float
     section_recovery_minutes: float = 0.0  # Time recovered or lost in section (e.g. -4.0 for recovered, +8.0 for delay added)
     cascading_breakdown: Optional[Dict[str, float]] = None  # Factors breakdown: Initial, Wait, Signal, Platform, Slow, Freight, Crew, Junction
+    same_weekday_pattern_minutes: Optional[float] = None  # 2-year same-weekday status (e.g. Saturday vs past Saturdays)
+    calendar_date_anomaly_minutes: Optional[float] = None  # Specific date & month abnormal delay anomaly over 2 years
+    chain_recovery_capability_minutes: Optional[float] = None  # Cascading delay recovery capability on this section
     status: str  # PASSED, CURRENT, UPCOMING
     is_current_position: bool = False
     delay_reasons: List[ETABreakdownFactor] = []
@@ -182,28 +185,37 @@ class TrainRouteResponse(BaseModel):
     total_delay_minutes: float
     status_message: str
     last_updated: str
+    active_journey_date: Optional[str] = None
     formatted_confidence_eta: str = ""
     route_items: List[StationRouteItem]
 
 class CounterfactualRequestSchema(BaseModel):
-    train_id: str = "TRAIN_12951"
-    train_number: str = "12951"
-    intervention_type: str = "PRIORITY_BOOST"  # PRIORITY_BOOST, TSR_IMPOSITION, WEATHER_SPEED_DROP
-    section_id: Optional[str] = "NDLS-MTJ"
-    corridor_name: Optional[str] = "WESTERN_LINE"
-    speed_restriction_kmh: Optional[float] = 30.0
-    duration_hours: Optional[float] = 2.0
-    distance_km: Optional[float] = 50.0
+    train_id: Optional[str] = None
+    train_number: Optional[str] = None
+    intervention_type: str = "INJECT_DELAY"  # INJECT_DELAY, PRIORITY_BOOST, TSR_IMPOSITION, WEATHER_SPEED_DROP
+    injected_delay_minutes: Optional[float] = 10.0
+    section_id: Optional[str] = None
+    corridor_name: Optional[str] = None
+    speed_restriction_kmh: Optional[float] = None
+    duration_hours: Optional[float] = None
+    distance_km: Optional[float] = None
     priority_level: Optional[int] = 1
 
 class CounterfactualResponseSchema(BaseModel):
     intervention_type: str
     target_id: str
+    train_name: Optional[str] = None
+    train_number: Optional[str] = None
     baseline_eta: str
     intervention_eta: str
+    baseline_delay_minutes: float = 0.0
+    intervention_delay_minutes: float = 0.0
     eta_p10: str
     eta_p50: str
     eta_p90: str
+    delay_p10: float = 0.0
+    delay_p50: float = 0.0
+    delay_p90: float = 0.0
     confidence_score: float
     delay_change_minutes: float
     network_passenger_minutes_added: float
@@ -211,6 +223,11 @@ class CounterfactualResponseSchema(BaseModel):
     junction_platform_conflicts: int
     cascading_train_summaries: List[Dict[str, Any]] = []
     route_comparison: List[Dict[str, Any]] = []
+    corridor_risk: Optional[str] = "LOW"
+    escalated_risk: Optional[str] = "MEDIUM"
+    total_cascaded_impact_min: Optional[float] = 0.0
+    net_cascaded_escalation_min: Optional[float] = 0.0
+    downstream_absorption: List[Dict[str, Any]] = []
 
 
 

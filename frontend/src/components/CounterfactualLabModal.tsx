@@ -10,7 +10,7 @@ interface CounterfactualLabModalProps {
 
 export const CounterfactualLabModal: React.FC<CounterfactualLabModalProps> = ({ isOpen, onClose }) => {
   const [interventionType, setInterventionType] = useState<'PRIORITY_BOOST' | 'TSR_IMPOSITION' | 'WEATHER_SPEED_DROP'>('PRIORITY_BOOST');
-  const [trainNumber, setTrainNumber] = useState<string>('12951');
+  const [trainNumber, setTrainNumber] = useState<string>('');
   const [sectionId, setSectionId] = useState<string>('NDLS-MTJ');
   const [tsrSpeed, setTsrSpeed] = useState<number>(30);
   const [distanceKm, setDistanceKm] = useState<number>(50);
@@ -92,18 +92,16 @@ export const CounterfactualLabModal: React.FC<CounterfactualLabModalProps> = ({ 
             </div>
 
             {/* Target Train */}
+            {/* Target Train */}
             <div>
-              <label style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Train</label>
-              <select
+              <label style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Train Number</label>
+              <input
+                type="text"
+                placeholder="Enter Train Number (e.g. 12951)..."
                 value={trainNumber}
                 onChange={(e) => setTrainNumber(e.target.value)}
-                style={{ width: '100%', background: '#0f172a', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'white', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}
-              >
-                <option value="12951">12951 Mumbai Rajdhani</option>
-                <option value="12302">12302 Howrah Rajdhani</option>
-                <option value="12626">12626 Kerala Express</option>
-                <option value="12002">12002 Shatabdi Express</option>
-              </select>
+                style={{ width: '100%', background: '#0f172a', border: '1px solid rgba(56, 189, 248, 0.4)', color: 'white', padding: '8px', borderRadius: '8px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+              />
             </div>
 
             {/* Target Section */}

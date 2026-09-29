@@ -7,14 +7,15 @@ from app.schemas.schemas import RTISTelemetrySchema
 
 logger = logging.getLogger("rtis_adapter")
 
+from app.config import settings
+
 class LiveIndianRailwaysRTISAdapter(RTISAdapter):
     """
     Live RTIS & Rail Data Adapter for Indian Railways.
-    Uses API Key: rg_91e5671b9dff48c999432f1e89df2793
     Fetches real-time GPS telemetry, section speeds, and delay records.
     """
-    def __init__(self, api_key: str = "rg_91e5671b9dff48c999432f1e89df2793", orchestrator=None):
-        self.api_key = api_key
+    def __init__(self, api_key: Optional[str] = None, orchestrator=None):
+        self.api_key = api_key or settings.WHERE_IS_MY_TRAIN_API_KEY
         self.orchestrator = orchestrator
         self._cache: Dict[str, Dict[str, Any]] = {}
         self.last_fetch_time = None
@@ -68,7 +69,7 @@ class LiveIndianRailwaysRTISAdapter(RTISAdapter):
         if not train:
             return None
         
-        train_num = train.get("train_number", "12951")
+        train_num = train.get("train_number") or train_id.replace("TRAIN_", "")
         
         # Attempt live API fetch
         api_data = self.fetch_live_status_from_api(train_num)

@@ -1,4 +1,5 @@
 import time
+import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
@@ -17,164 +18,9 @@ from app.simulation.event_simulator import IncidentEventSimulator
 from app.schemas.schemas import ETAPredictionSchema, TrainStateSchema, SimulationStateSchema
 
 
+logger = logging.getLogger("simulation_orchestrator")
+from app.adapters.historical_data_adapter import get_historical_adapter
 
-# Comprehensive Route Catalog for ALL 10 Iconic Train Corridors
-route_catalogs = {
-    "12951": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "16:55", "sched_dep": "16:55", "platform": "16"},
-        {"code": "MTJ", "name": "Mathura Junction", "dist": 141.0, "sched_arr": "18:24", "sched_dep": "18:26", "platform": "3"},
-        {"code": "KOTA", "name": "Kota Junction", "dist": 465.0, "sched_arr": "21:40", "sched_dep": "21:50", "platform": "1"},
-        {"code": "RTM", "name": "Ratlam Junction", "dist": 731.0, "sched_arr": "00:45", "sched_dep": "00:50", "platform": "4"},
-        {"code": "BRC", "name": "Vadodara Junction", "dist": 992.0, "sched_arr": "03:48", "sched_dep": "03:58", "platform": "1"},
-        {"code": "ST", "name": "Surat", "dist": 1122.0, "sched_arr": "05:33", "sched_dep": "05:38", "platform": "1"},
-        {"code": "BVI", "name": "Borivali", "dist": 1355.0, "sched_arr": "07:55", "sched_dep": "07:57", "platform": "7"},
-        {"code": "MMCT", "name": "Mumbai Central", "dist": 1385.0, "sched_arr": "08:35", "sched_dep": "08:35", "platform": "5"}
-    ],
-    "12302": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "16:50", "sched_dep": "16:50", "platform": "9"},
-        {"code": "CNB", "name": "Kanpur Central", "dist": 440.0, "sched_arr": "21:32", "sched_dep": "21:37", "platform": "5"},
-        {"code": "PRYJ", "name": "Prayagraj Junction", "dist": 634.0, "sched_arr": "23:43", "sched_dep": "23:45", "platform": "4"},
-        {"code": "DDU", "name": "Pt. Deen Dayal Upadhyaya", "dist": 787.0, "sched_arr": "01:47", "sched_dep": "01:57", "platform": "2"},
-        {"code": "GAYA", "name": "Gaya Junction", "dist": 992.0, "sched_arr": "04:10", "sched_dep": "04:13", "platform": "1"},
-        {"code": "DHN", "name": "Dhanbad Junction", "dist": 1193.0, "sched_arr": "06:55", "sched_dep": "07:00", "platform": "2"},
-        {"code": "ASN", "name": "Asansol Junction", "dist": 1251.0, "sched_arr": "07:50", "sched_dep": "07:52", "platform": "5"},
-        {"code": "HWH", "name": "Howrah Junction", "dist": 1449.0, "sched_arr": "09:55", "sched_dep": "09:55", "platform": "9"}
-    ],
-    "12626": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "20:10", "sched_dep": "20:10", "platform": "3"},
-        {"code": "MTJ", "name": "Mathura Junction", "dist": 141.0, "sched_arr": "21:40", "sched_dep": "21:42", "platform": "2"},
-        {"code": "AGC", "name": "Agra Cantt", "dist": 195.0, "sched_arr": "22:35", "sched_dep": "22:40", "platform": "1"},
-        {"code": "DHO", "name": "Dholpur Junction", "dist": 248.0, "sched_arr": "23:23", "sched_dep": "23:25", "platform": "1"},
-        {"code": "MRA", "name": "Morena", "dist": 275.0, "sched_arr": "23:43", "sched_dep": "23:45", "platform": "1"},
-        {"code": "GWL", "name": "Gwalior Junction", "dist": 313.0, "sched_arr": "00:08", "sched_dep": "00:10", "platform": "1"},
-        {"code": "VGLJ", "name": "VGL Jhansi", "dist": 411.0, "sched_arr": "01:30", "sched_dep": "01:38", "platform": "2"},
-        {"code": "LAR", "name": "Lalitpur Junction", "dist": 501.0, "sched_arr": "02:40", "sched_dep": "02:42", "platform": "2"},
-        {"code": "BINA", "name": "Bina Junction", "dist": 564.0, "sched_arr": "03:45", "sched_dep": "03:50", "platform": "3"},
-        {"code": "BPL", "name": "Bhopal Junction", "dist": 702.0, "sched_arr": "05:20", "sched_dep": "05:25", "platform": "1"},
-        {"code": "RKMP", "name": "Rani Kamlapati", "dist": 708.0, "sched_arr": "05:35", "sched_dep": "05:37", "platform": "4"},
-        {"code": "ET", "name": "Itarsi Junction", "dist": 794.0, "sched_arr": "07:10", "sched_dep": "07:20", "platform": "2"},
-        {"code": "GDYA", "name": "Ghoradongri", "dist": 864.0, "sched_arr": "08:24", "sched_dep": "08:25", "platform": "2"},
-        {"code": "BZU", "name": "Betul", "dist": 901.0, "sched_arr": "09:03", "sched_dep": "09:05", "platform": "1"},
-        {"code": "AMLA", "name": "Amla Junction", "dist": 924.0, "sched_arr": "09:26", "sched_dep": "09:28", "platform": "2"},
-        {"code": "MTY", "name": "Multai", "dist": 951.0, "sched_arr": "09:47", "sched_dep": "09:48", "platform": "1"},
-        {"code": "PAR", "name": "Pandhurna", "dist": 992.0, "sched_arr": "10:24", "sched_dep": "10:25", "platform": "1"},
-        {"code": "NRKR", "name": "Narkher Junction", "dist": 1010.0, "sched_arr": "10:41", "sched_dep": "10:42", "platform": "1"},
-        {"code": "NGP", "name": "Nagpur Junction", "dist": 1092.0, "sched_arr": "11:45", "sched_dep": "11:50", "platform": "2"},
-        {"code": "SEGM", "name": "Sevagram Junction", "dist": 1168.0, "sched_arr": "12:53", "sched_dep": "12:55", "platform": "4"},
-        {"code": "HGT", "name": "Hinganghat", "dist": 1195.0, "sched_arr": "13:18", "sched_dep": "13:20", "platform": "1"},
-        {"code": "CD", "name": "Chandrapur", "dist": 1271.0, "sched_arr": "14:18", "sched_dep": "14:20", "platform": "1"},
-        {"code": "BPQ", "name": "Balharshah", "dist": 1285.0, "sched_arr": "15:20", "sched_dep": "15:25", "platform": "1"},
-        {"code": "SKZR", "name": "Sirpur Kaghaznagar", "dist": 1355.0, "sched_arr": "16:14", "sched_dep": "16:15", "platform": "2"},
-        {"code": "RDM", "name": "Ramagundam", "dist": 1427.0, "sched_arr": "17:09", "sched_dep": "17:10", "platform": "2"},
-        {"code": "PDPL", "name": "Peddapalli Junction", "dist": 1445.0, "sched_arr": "17:24", "sched_dep": "17:25", "platform": "2"},
-        {"code": "WL", "name": "Warangal", "dist": 1528.0, "sched_arr": "18:38", "sched_dep": "18:40", "platform": "1"},
-        {"code": "KMT", "name": "Khammam", "dist": 1636.0, "sched_arr": "20:08", "sched_dep": "20:10", "platform": "1"},
-        {"code": "BZA", "name": "Vijayawada Junction", "dist": 1735.0, "sched_arr": "21:30", "sched_dep": "21:40", "platform": "6"},
-        {"code": "NLR", "name": "Nellore", "dist": 1990.0, "sched_arr": "01:03", "sched_dep": "01:05", "platform": "3"},
-        {"code": "GDR", "name": "Gudur Junction", "dist": 2029.0, "sched_arr": "02:08", "sched_dep": "02:10", "platform": "1"},
-        {"code": "RU", "name": "Renigunta Junction", "dist": 2112.0, "sched_arr": "03:30", "sched_dep": "03:35", "platform": "3"},
-        {"code": "TPTY", "name": "Tirupati", "dist": 2122.0, "sched_arr": "04:00", "sched_dep": "04:05", "platform": "1"},
-        {"code": "CTO", "name": "Chittoor", "dist": 2194.0, "sched_arr": "05:14", "sched_dep": "05:15", "platform": "1"},
-        {"code": "KPD", "name": "Katpadi Junction", "dist": 2227.0, "sched_arr": "06:10", "sched_dep": "06:15", "platform": "3"},
-        {"code": "JTJ", "name": "Jolarpettai Junction", "dist": 2311.0, "sched_arr": "07:43", "sched_dep": "07:45", "platform": "1"},
-        {"code": "SA", "name": "Salem Junction", "dist": 2432.0, "sched_arr": "09:22", "sched_dep": "09:25", "platform": "4"},
-        {"code": "ED", "name": "Erode Junction", "dist": 2491.0, "sched_arr": "10:30", "sched_dep": "10:35", "platform": "2"},
-        {"code": "TUP", "name": "Tiruppur", "dist": 2542.0, "sched_arr": "11:23", "sched_dep": "11:25", "platform": "1"},
-        {"code": "CBE", "name": "Coimbatore Junction", "dist": 2592.0, "sched_arr": "12:22", "sched_dep": "12:25", "platform": "2"},
-        {"code": "PGT", "name": "Palakkad Junction", "dist": 2648.0, "sched_arr": "13:42", "sched_dep": "13:45", "platform": "1"},
-        {"code": "TCR", "name": "Thrissur", "dist": 2723.0, "sched_arr": "14:57", "sched_dep": "15:00", "platform": "1"},
-        {"code": "AWY", "name": "Aluva", "dist": 2778.0, "sched_arr": "15:48", "sched_dep": "15:50", "platform": "1"},
-        {"code": "ERN", "name": "Ernakulam Town", "dist": 2795.0, "sched_arr": "16:20", "sched_dep": "16:25", "platform": "2"},
-        {"code": "KTYM", "name": "Kottayam", "dist": 2855.0, "sched_arr": "17:32", "sched_dep": "17:35", "platform": "1"},
-        {"code": "CNGR", "name": "Chengannur", "dist": 2890.0, "sched_arr": "18:11", "sched_dep": "18:13", "platform": "1"},
-        {"code": "QLN", "name": "Kollam Junction", "dist": 2951.0, "sched_arr": "19:12", "sched_dep": "19:15", "platform": "1"},
-        {"code": "TVC", "name": "Trivandrum Central", "dist": 3016.0, "sched_arr": "21:00", "sched_dep": "21:00", "platform": "1"}
-    ],
-    "12952": [
-        {"code": "MMCT", "name": "Mumbai Central", "dist": 0.0, "sched_arr": "17:00", "sched_dep": "17:00", "platform": "5"},
-        {"code": "BVI", "name": "Borivali", "dist": 30.0, "sched_arr": "17:33", "sched_dep": "17:35", "platform": "6"},
-        {"code": "ST", "name": "Surat", "dist": 263.0, "sched_arr": "19:43", "sched_dep": "19:48", "platform": "1"},
-        {"code": "BRC", "name": "Vadodara Junction", "dist": 393.0, "sched_arr": "21:16", "sched_dep": "21:26", "platform": "2"},
-        {"code": "RTM", "name": "Ratlam Junction", "dist": 654.0, "sched_arr": "00:30", "sched_dep": "00:35", "platform": "5"},
-        {"code": "KOTA", "name": "Kota Junction", "dist": 920.0, "sched_arr": "03:15", "sched_dep": "03:25", "platform": "1"},
-        {"code": "MTJ", "name": "Mathura Junction", "dist": 1244.0, "sched_arr": "06:43", "sched_dep": "06:45", "platform": "3"},
-        {"code": "NDLS", "name": "New Delhi", "dist": 1385.0, "sched_arr": "08:32", "sched_dep": "08:32", "platform": "3"}
-    ],
-    "12002": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "06:00", "sched_dep": "06:00", "platform": "1"},
-        {"code": "MTJ", "name": "Mathura Junction", "dist": 141.0, "sched_arr": "07:19", "sched_dep": "07:20", "platform": "1"},
-        {"code": "AGC", "name": "Agra Cantt", "dist": 195.0, "sched_arr": "07:50", "sched_dep": "07:55", "platform": "1"},
-        {"code": "GWL", "name": "Gwalior Junction", "dist": 313.0, "sched_arr": "09:23", "sched_dep": "09:25", "platform": "1"},
-        {"code": "VGLJ", "name": "VGL Jhansi", "dist": 411.0, "sched_arr": "10:45", "sched_dep": "10:50", "platform": "2"},
-        {"code": "LAR", "name": "Lalitpur Junction", "dist": 501.0, "sched_arr": "11:42", "sched_dep": "11:43", "platform": "2"},
-        {"code": "BINA", "name": "Bina Junction", "dist": 564.0, "sched_arr": "12:38", "sched_dep": "12:40", "platform": "3"},
-        {"code": "BPL", "name": "Bhopal Junction", "dist": 702.0, "sched_arr": "14:12", "sched_dep": "14:15", "platform": "1"},
-        {"code": "RKMP", "name": "Rani Kamlapati", "dist": 708.0, "sched_arr": "14:40", "sched_dep": "14:40", "platform": "5"}
-    ],
-    "12424": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "16:20", "sched_dep": "16:20", "platform": "16"},
-        {"code": "CNB", "name": "Kanpur Central", "dist": 440.0, "sched_arr": "21:02", "sched_dep": "21:07", "platform": "5"},
-        {"code": "PRYJ", "name": "Prayagraj Junction", "dist": 634.0, "sched_arr": "23:08", "sched_dep": "23:10", "platform": "4"},
-        {"code": "DDU", "name": "Pt. Deen Dayal Upadhyaya", "dist": 787.0, "sched_arr": "01:05", "sched_dep": "01:15", "platform": "2"},
-        {"code": "PPTA", "name": "Patliputra Junction", "dist": 995.0, "sched_arr": "03:50", "sched_dep": "04:00", "platform": "2"},
-        {"code": "BJU", "name": "Barauni Junction", "dist": 1103.0, "sched_arr": "06:35", "sched_dep": "06:45", "platform": "4"},
-        {"code": "NJP", "name": "New Jalpaiguri", "dist": 1475.0, "sched_arr": "13:05", "sched_dep": "13:15", "platform": "1"},
-        {"code": "GHY", "name": "Guwahati", "dist": 1882.0, "sched_arr": "20:00", "sched_dep": "20:15", "platform": "1"},
-        {"code": "DBRG", "name": "Dibrugarh", "dist": 2445.0, "sched_arr": "07:00", "sched_dep": "07:00", "platform": "1"}
-    ],
-    "12958": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "19:55", "sched_dep": "19:55", "platform": "1"},
-        {"code": "DEC", "name": "Delhi Cantt", "dist": 15.0, "sched_arr": "20:25", "sched_dep": "20:27", "platform": "1"},
-        {"code": "GGN", "name": "Gurgaon", "dist": 32.0, "sched_arr": "20:43", "sched_dep": "20:45", "platform": "1"},
-        {"code": "JP", "name": "Jaipur Junction", "dist": 308.0, "sched_arr": "23:45", "sched_dep": "23:55", "platform": "1"},
-        {"code": "AII", "name": "Ajmer Junction", "dist": 443.0, "sched_arr": "01:50", "sched_dep": "01:55", "platform": "2"},
-        {"code": "ABR", "name": "Abu Road", "dist": 748.0, "sched_arr": "05:55", "sched_dep": "06:05", "platform": "1"},
-        {"code": "ADI", "name": "Ahmedabad Junction", "dist": 934.0, "sched_arr": "09:30", "sched_dep": "09:30", "platform": "1"}
-    ],
-    "12425": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "20:40", "sched_dep": "20:40", "platform": "15"},
-        {"code": "UMB", "name": "Ambala Cantt", "dist": 199.0, "sched_arr": "23:00", "sched_dep": "23:02", "platform": "7"},
-        {"code": "LDH", "name": "Ludhiana Junction", "dist": 313.0, "sched_arr": "00:28", "sched_dep": "00:38", "platform": "2"},
-        {"code": "JRC", "name": "Jalandhar Cantt", "dist": 365.0, "sched_arr": "01:23", "sched_dep": "01:25", "platform": "1"},
-        {"code": "PTKC", "name": "Pathankot Cantt", "dist": 478.0, "sched_arr": "03:08", "sched_dep": "03:10", "platform": "2"},
-        {"code": "JAT", "name": "Jammu Tawi", "dist": 577.0, "sched_arr": "05:00", "sched_dep": "05:00", "platform": "3"}
-    ],
-    "12622": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "21:05", "sched_dep": "21:05", "platform": "3"},
-        {"code": "AGC", "name": "Agra Cantt", "dist": 195.0, "sched_arr": "23:28", "sched_dep": "23:30", "platform": "1"},
-        {"code": "GWL", "name": "Gwalior Junction", "dist": 313.0, "sched_arr": "01:13", "sched_dep": "01:15", "platform": "1"},
-        {"code": "VGLJ", "name": "VGL Jhansi", "dist": 411.0, "sched_arr": "02:35", "sched_dep": "02:43", "platform": "2"},
-        {"code": "BPL", "name": "Bhopal Junction", "dist": 702.0, "sched_arr": "06:45", "sched_dep": "06:50", "platform": "1"},
-        {"code": "NGP", "name": "Nagpur Junction", "dist": 1092.0, "sched_arr": "13:05", "sched_dep": "13:10", "platform": "2"},
-        {"code": "BPQ", "name": "Balharshah", "dist": 1285.0, "sched_arr": "16:25", "sched_dep": "16:30", "platform": "1"},
-        {"code": "WL", "name": "Warangal", "dist": 1528.0, "sched_arr": "19:43", "sched_dep": "19:45", "platform": "1"},
-        {"code": "BZA", "name": "Vijayawada Junction", "dist": 1735.0, "sched_arr": "23:15", "sched_dep": "23:25", "platform": "1"},
-        {"code": "MAS", "name": "MGR Chennai Central", "dist": 2167.0, "sched_arr": "06:15", "sched_dep": "06:15", "platform": "4"}
-    ],
-    "12724": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "16:00", "sched_dep": "16:00", "platform": "7"},
-        {"code": "AGC", "name": "Agra Cantt", "dist": 195.0, "sched_arr": "18:05", "sched_dep": "18:07", "platform": "1"},
-        {"code": "GWL", "name": "Gwalior Junction", "dist": 313.0, "sched_arr": "19:28", "sched_dep": "19:30", "platform": "1"},
-        {"code": "VGLJ", "name": "VGL Jhansi", "dist": 411.0, "sched_arr": "21:03", "sched_dep": "21:11", "platform": "2"},
-        {"code": "BPL", "name": "Bhopal Junction", "dist": 702.0, "sched_arr": "01:00", "sched_dep": "01:05", "platform": "1"},
-        {"code": "NGP", "name": "Nagpur Junction", "dist": 1092.0, "sched_arr": "07:10", "sched_dep": "07:15", "platform": "2"},
-        {"code": "SKZR", "name": "Sirpur Kaghaznagar", "dist": 1355.0, "sched_arr": "11:14", "sched_dep": "11:15", "platform": "2"},
-        {"code": "RDM", "name": "Ramagundam", "dist": 1427.0, "sched_arr": "12:09", "sched_dep": "12:10", "platform": "2"},
-        {"code": "WL", "name": "Warangal", "dist": 1528.0, "sched_arr": "13:38", "sched_dep": "13:40", "platform": "1"},
-        {"code": "KZJ", "name": "Kazipet Junction", "dist": 1538.0, "sched_arr": "13:58", "sched_dep": "14:00", "platform": "3"},
-        {"code": "SC", "name": "Secunderabad Junction", "dist": 1670.0, "sched_arr": "16:25", "sched_dep": "16:30", "platform": "10"},
-        {"code": "HYB", "name": "Hyderabad Deccan", "dist": 1679.0, "sched_arr": "17:10", "sched_dep": "17:10", "platform": "5"}
-    ],
-    "12260": [
-        {"code": "NDLS", "name": "New Delhi", "dist": 0.0, "sched_arr": "19:45", "sched_dep": "19:45", "platform": "12"},
-        {"code": "CNB", "name": "Kanpur Central", "dist": 440.0, "sched_arr": "00:05", "sched_dep": "00:10", "platform": "5"},
-        {"code": "PRYJ", "name": "Prayagraj Junction", "dist": 634.0, "sched_arr": "02:20", "sched_dep": "02:25", "platform": "4"},
-        {"code": "DDU", "name": "Pt. Deen Dayal Upadhyaya", "dist": 787.0, "sched_arr": "04:30", "sched_dep": "04:40", "platform": "2"},
-        {"code": "DHN", "name": "Dhanbad Junction", "dist": 1193.0, "sched_arr": "09:10", "sched_dep": "09:15", "platform": "3"},
-        {"code": "ASN", "name": "Asansol Junction", "dist": 1251.0, "sched_arr": "10:15", "sched_dep": "10:20", "platform": "5"},
-        {"code": "SDAH", "name": "Sealdah (Kolkata)", "dist": 1458.0, "sched_arr": "12:45", "sched_dep": "12:45", "platform": "9"}
-    ]
-}
 
 class SimulationOrchestrator:
 
@@ -211,229 +57,28 @@ class SimulationOrchestrator:
         
         # Active state
         self.active_trains: Dict[str, Dict[str, Any]] = {}
+        self._seen_train_numbers: set = set()
         self._initialize_default_trains()
         
         # Demo Step Tracker
         self.demo_step = 0
 
     def _initialize_default_trains(self):
-        """Seed 10 real iconic Indian Railways trains with authentic routes and schedules."""
-        trains_data = [
-            {
-                "train_id": "TRAIN_12951",
-                "train_number": "12951",
-                "train_name": "Mumbai Rajdhani Express",
-                "train_type": "RAJDHANI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "MMCT",
-                "destination_station_name": "Mumbai Central",
-                "current_section_id": "NDLS-MTJ",
-                "next_station_id": "MTJ",
-                "next_station_name": "Mathura Junction",
-                "last_station_id": "NDLS",
-                "lat": 28.3000,
-                "lng": 77.4000,
-                "speed_kmh": 110.0,
-                "current_delay_minutes": 5.0,
-                "status": "ON_TIME",
-                "last_event_description": "Departed New Delhi on schedule"
-            },
-            {
-                "train_id": "TRAIN_12302",
-                "train_number": "12302",
-                "train_name": "Howrah Rajdhani Express",
-                "train_type": "RAJDHANI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "HWH",
-                "destination_station_name": "Howrah Junction",
-                "current_section_id": "NDLS-CNB",
-                "next_station_id": "CNB",
-                "next_station_name": "Kanpur Central",
-                "last_station_id": "NDLS",
-                "lat": 27.8000,
-                "lng": 78.8000,
-                "speed_kmh": 120.0,
-                "current_delay_minutes": 0.0,
-                "status": "ON_TIME",
-                "last_event_description": "Cruising NDLS-CNB section at 120 km/h"
-            },
-            {
-                "train_id": "TRAIN_12626",
-                "train_number": "12626",
-                "train_name": "Kerala Express",
-                "train_type": "SUPERFAST",
-                "priority": 2,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "TVC",
-                "destination_station_name": "Trivandrum Central",
-                "current_section_id": "AGC-GWL",
-                "next_station_id": "GWL",
-                "next_station_name": "Gwalior Junction",
-                "last_station_id": "AGC",
-                "lat": 26.8000,
-                "lng": 78.1000,
-                "speed_kmh": 75.0,
-                "current_delay_minutes": 14.0,
-                "status": "SLIGHT_DELAY",
-                "last_event_description": "Delayed at Agra Cantt due to platform congestion"
-            },
-            {
-                "train_id": "TRAIN_12002",
-                "train_number": "12002",
-                "train_name": "Rani Kamlapati Shatabdi",
-                "train_type": "SHATABDI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "RKMP",
-                "destination_station_name": "Rani Kamlapati (Bhopal)",
-                "current_section_id": "VGLJ-BINA",
-                "next_station_id": "BINA",
-                "next_station_name": "Bina Junction",
-                "last_station_id": "VGLJ",
-                "lat": 24.8000,
-                "lng": 78.3000,
-                "speed_kmh": 105.0,
-                "current_delay_minutes": 2.0,
-                "status": "ON_TIME",
-                "last_event_description": "Passed VGL Jhansi on schedule"
-            },
-            {
-                "train_id": "TRAIN_12424",
-                "train_number": "12424",
-                "train_name": "Dibrugarh Rajdhani Express",
-                "train_type": "RAJDHANI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "DBRG",
-                "destination_station_name": "Dibrugarh",
-                "current_section_id": "PRYJ-DDU",
-                "next_station_id": "DDU",
-                "next_station_name": "Pt. Deen Dayal Upadhyaya",
-                "last_station_id": "PRYJ",
-                "lat": 25.3500,
-                "lng": 82.5000,
-                "speed_kmh": 115.0,
-                "current_delay_minutes": 8.0,
-                "status": "ON_TIME",
-                "last_event_description": "Crossed Prayagraj Junction (+8m)"
-            },
-            {
-                "train_id": "TRAIN_12958",
-                "train_number": "12958",
-                "train_name": "Swarna Jayanti Rajdhani",
-                "train_type": "RAJDHANI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "ADI",
-                "destination_station_name": "Ahmedabad Junction",
-                "current_section_id": "DEC-JP",
-                "next_station_id": "JP",
-                "next_station_name": "Jaipur Junction",
-                "last_station_id": "DEC",
-                "lat": 27.5000,
-                "lng": 76.5000,
-                "speed_kmh": 100.0,
-                "current_delay_minutes": 0.0,
-                "status": "ON_TIME",
-                "last_event_description": "En-route to Jaipur Junction on schedule"
-            },
-            {
-                "train_id": "TRAIN_12425",
-                "train_number": "12425",
-                "train_name": "Jammu Rajdhani Express",
-                "train_type": "RAJDHANI",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "JAT",
-                "destination_station_name": "Jammu Tawi",
-                "current_section_id": "UMB-LDH",
-                "next_station_id": "LDH",
-                "next_station_name": "Ludhiana Junction",
-                "last_station_id": "UMB",
-                "lat": 30.6000,
-                "lng": 76.3000,
-                "speed_kmh": 110.0,
-                "current_delay_minutes": 3.0,
-                "status": "ON_TIME",
-                "last_event_description": "Passed Ambala Cantt (+3m)"
-            },
-            {
-                "train_id": "TRAIN_12622",
-                "train_number": "12622",
-                "train_name": "Tamil Nadu Express",
-                "train_type": "SUPERFAST",
-                "priority": 2,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "MAS",
-                "destination_station_name": "MGR Chennai Central",
-                "current_section_id": "BPL-NGP",
-                "next_station_id": "NGP",
-                "next_station_name": "Nagpur Junction",
-                "last_station_id": "BPL",
-                "lat": 22.2000,
-                "lng": 78.2000,
-                "speed_kmh": 90.0,
-                "current_delay_minutes": 18.0,
-                "status": "SLIGHT_DELAY",
-                "last_event_description": "Crossed Bhopal Junction (+18m)"
-            },
-            {
-                "train_id": "TRAIN_12724",
-                "train_number": "12724",
-                "train_name": "Telangana Express",
-                "train_type": "SUPERFAST",
-                "priority": 2,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "HYB",
-                "destination_station_name": "Hyderabad Deccan",
-                "current_section_id": "KZJ-SC",
-                "next_station_id": "SC",
-                "next_station_name": "Secunderabad Junction",
-                "last_station_id": "KZJ",
-                "lat": 17.7000,
-                "lng": 79.0000,
-                "speed_kmh": 85.0,
-                "current_delay_minutes": 10.0,
-                "status": "SLIGHT_DELAY",
-                "last_event_description": "Approaching Secunderabad Junction"
-            },
-            {
-                "train_id": "TRAIN_12260",
-                "train_number": "12260",
-                "train_name": "Sealdah Duronto Express",
-                "train_type": "SUPERFAST",
-                "priority": 1,
-                "origin_station_id": "NDLS",
-                "origin_station_name": "New Delhi",
-                "destination_station_id": "SDAH",
-                "destination_station_name": "Sealdah (Kolkata)",
-                "current_section_id": "DDU-DHN",
-                "next_station_id": "DHN",
-                "next_station_name": "Dhanbad Junction",
-                "last_station_id": "DDU",
-                "lat": 24.5000,
-                "lng": 85.5000,
-                "speed_kmh": 110.0,
-                "current_delay_minutes": 0.0,
-                "status": "ON_TIME",
-                "last_event_description": "High-speed non-stop run on DDU-DHN section"
-            }
-        ]
-        
-        for t in trains_data:
-            self.active_trains[t["train_id"]] = t
-            self.changepoint_detectors[t["train_id"]] = CUSUMChangePointDetector()
+        """Initializes corridor trains from authentic DB records; additional trains populate dynamically upon user input."""
+        self.active_trains = {}
+        try:
+            from app.analytics.corridor_conflict_engine import CorridorConflictEngine
+            engine = CorridorConflictEngine(self)
+            initial_records = engine._get_active_train_records()
+            for r in initial_records:
+                self.active_trains[r["train_id"]] = r
+                if r["train_id"] not in self.changepoint_detectors:
+                    try:
+                        self.changepoint_detectors[r["train_id"]] = CUSUMChangePointDetector()
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning(f"Could not hydrate initial corridor trains: {e}")
 
 
     def get_current_timestamp(self) -> str:
@@ -479,7 +124,9 @@ class SimulationOrchestrator:
                 train = self.rtis_sim.step_train_movement(train, sim_delta_seconds)
                 
                 # Check Change-Point Detection on speed drop
-                cp_result = self.changepoint_detectors[t_id].add_data_point(train["speed_kmh"])
+                if t_id not in self.changepoint_detectors:
+                    self.changepoint_detectors[t_id] = CUSUMChangePointDetector()
+                cp_result = self.changepoint_detectors[t_id].add_data_point(train.get("speed_kmh", 0.0))
                 if cp_result["change_detected"] and cp_result["direction"] == "SPEED_DROP":
                     self.coa_sim.log_event(
                         event_type="UNSCHEDULED_SPEED_DROP",
@@ -498,16 +145,27 @@ class SimulationOrchestrator:
                 print(f"Error ticking simulation for train {t_id}: {e}")
 
     def compute_dynamic_eta(self, train_id: str) -> Optional[ETAPredictionSchema]:
-        train = self.active_trains.get(train_id)
+        clean_id = train_id.replace("TRAIN_", "").strip()
+        normalized_id = f"TRAIN_{clean_id}"
+        train = self.active_trains.get(train_id) or self.active_trains.get(normalized_id) or self.active_trains.get(clean_id)
+        if not train:
+            for t in self.active_trains.values():
+                if (isinstance(t, dict) and (t.get("train_id") in (train_id, normalized_id) or t.get("train_number") == clean_id)) or \
+                   (getattr(t, "train_id", None) in (train_id, normalized_id) or getattr(t, "train_number", None) == clean_id):
+                    train = t
+                    break
+        if not train:
+            self.sync_live_telemetry(clean_id)
+            train = self.active_trains.get(normalized_id) or self.active_trains.get(clean_id)
+
         if not train:
             return None
 
-        dest_id = train["destination_station_id"]
-        dest_name = train["destination_station_name"]
+        dest_id = train.get("destination_station_id") or (train.get("stations", [])[-1]["code"] if train.get("stations") else "DEST")
+        dest_name = train.get("destination_station_name") or (train.get("stations", [])[-1]["name"] if train.get("stations") else "Destination")
         
-        train_num_str = str(train.get("train_number", "12951"))
-        catalog = route_catalogs.get(train_num_str, route_catalogs.get("12951", []))
-        dest_sched_arr_str = catalog[-1]["sched_arr"] if catalog else "12:00"
+        train_num_str = str(train.get("train_number", ""))
+        dest_sched_arr_str = train.get("destination_sched_arr") or (train.get("stations", [])[-1]["sched_arr"] if train.get("stations") else "12:00")
 
         # Parse dest_sched_arr_str (e.g. "08:35") into actual scheduled datetime matching current IST date
         now_dt = self.current_sim_time
@@ -522,8 +180,9 @@ class SimulationOrchestrator:
         timetable_eta_str = base_sched_arr.strftime("%H:%M IST")
 
         # Get downstream sections
-        curr_sec_id = train["current_section_id"]
-        downstream_sections = self.graph.get_downstream_sections(train["last_station_id"], dest_id)
+        last_st = train.get("last_station_id") or train.get("current_station_code") or (train.get("stations", [])[0]["code"] if train.get("stations") else "ORIG")
+        curr_sec_id = train.get("current_section_id") or f"{last_st}-{dest_id}"
+        downstream_sections = self.graph.get_downstream_sections(last_st, dest_id) if hasattr(self.graph, "get_downstream_sections") else [curr_sec_id]
         if not downstream_sections:
             downstream_sections = [curr_sec_id]
 
@@ -541,6 +200,8 @@ class SimulationOrchestrator:
                 sec_med, sec_std = self.online_updater.get_online_section_stats(sec_id)
                 online_stats = {"median": sec_med, "std": sec_std}
             
+            st_code = sec_id.split("-")[0] if "-" in sec_id else sec_id
+            nxt_code = sec_id.split("-")[1] if "-" in sec_id else None
             ml_pred_min = self.predictor.predict_section_travel_time(
                 train_priority=train.get("priority", 3),
                 train_type=train.get("train_type", "EXPRESS"),
@@ -550,7 +211,10 @@ class SimulationOrchestrator:
                 route_sequence=idx + 1,
                 arrival_delay=train.get("current_delay_minutes", 0.0),
                 sched_section_travel_min=sched_min,
-                online_section_stats=online_stats
+                online_section_stats=online_stats,
+                station_code=st_code,
+                next_station_code=nxt_code,
+                journey_date=self.current_sim_time.strftime("%Y-%m-%d")
             )
             total_ml_travel_min += ml_pred_min
             sec_list_mc.append({"section_id": sec_id, "scheduled_travel_min": sched_min})
@@ -702,47 +366,53 @@ class SimulationOrchestrator:
         Initial 22:41 -> Signal Hold (+10m) -> Fog Entry (+9m) -> Precedence Hold (+7m) -> Clearance (-5m) -> Final ETA
         """
         self.demo_step += 1
-        train = self.active_trains.get("TRAIN_12951")
+        train = next(iter(self.active_trains.values()), None)
         if not train:
-            return {"step": self.demo_step, "description": "No active train"}
+            self.demo_step = 0
+            return {"demo_step": 0, "description": "No active train. Please search and track a train first."}
+
+        t_id = train["train_id"]
+        t_name = train.get("train_name", "Train")
+        t_sec = train.get("current_section_id", "MAIN")
+        t_next = train.get("next_station_id", "NEXT")
 
         desc = ""
         if self.demo_step == 1:
-            desc = "STEP 1: Initial State. Train 12951 running on schedule. Baseline Timetable ETA = 22:41."
+            desc = f"STEP 1: Initial State. {t_name} running on schedule."
             train["current_delay_minutes"] = 0.0
             train["status"] = "ON_TIME"
         elif self.demo_step == 2:
-            desc = "STEP 2: Signal Halt Injected. Train 12951 stopped at signal outside Mathura. Delay +10m -> Dynamic ETA = 22:51."
+            desc = f"STEP 2: Signal Halt Injected. {t_name} stopped at signal outside {t_next}. Delay +10m."
             train["current_delay_minutes"] = 10.0
             train["speed_kmh"] = 0.0
             train["status"] = "SIGNAL_HALT"
-            self.coa_sim.log_event("SIGNAL_HALT", "Signal halt outside MTJ for track clearance (+10m)", "TRAIN_12951", "MTJ", severity="HIGH")
+            self.coa_sim.log_event("SIGNAL_HALT", f"Signal halt outside {t_next} for track clearance (+10m)", t_id, t_next, severity="HIGH")
         elif self.demo_step == 3:
-            desc = "STEP 3: Fog Zone Entry. En-route section MTJ-AGC affected by dense fog (Visibility 180m). Speed restricted to 45 km/h (+9m penalty) -> Dynamic ETA = 23:00."
+            desc = f"STEP 3: Fog Zone Entry. En-route section {t_sec} affected by dense fog. Speed restricted to 45 km/h (+9m penalty)."
             train["current_delay_minutes"] = 19.0
             train["status"] = "INCIDENT_AFFECTED"
-            self.graph.update_section_state("MTJ-AGC", weather="FOG")
-            self.incident_sim.inject_incident("FOG", "MTJ-AGC", severity="HIGH", visibility_m=180.0)
-            self.coa_sim.log_event("WEATHER_ALERT", "Dense fog reported on section MTJ-AGC. MPS reduced to 45 km/h", "TRAIN_12951", section_id="MTJ-AGC", severity="HIGH")
+            self.graph.update_section_state(t_sec, weather="FOG")
+            self.incident_sim.inject_incident("FOG", t_sec, severity="HIGH", visibility_m=180.0)
+            self.coa_sim.log_event("WEATHER_ALERT", f"Dense fog reported on section {t_sec}. MPS reduced to 45 km/h", t_id, section_id=t_sec, severity="HIGH")
         elif self.demo_step == 4:
-            desc = "STEP 4: Junction Precedence Hold. Preceding freight train holding Agra Cantt junction. Delayed Train 12626 crossing (+7m delay propagation) -> Dynamic ETA = 23:07."
+            desc = f"STEP 4: Junction Precedence Hold. Preceding freight train holding junction (+7m delay propagation)."
             train["current_delay_minutes"] = 26.0
             train["status"] = "CRITICAL_DELAY"
-            self.graph.update_section_state("MTJ-AGC", congestion=0.8)
-            self.coa_sim.log_event("PRECEDENCE", "Junction route conflict at AGC. Held for crossing train (+7m)", "TRAIN_12951", station_id="AGC", severity="HIGH")
+            self.graph.update_section_state(t_sec, congestion=0.8)
+            self.coa_sim.log_event("PRECEDENCE", f"Junction route conflict. Held for crossing train (+7m)", t_id, station_id=t_next, severity="HIGH")
         elif self.demo_step == 5:
-            desc = "STEP 5: Fog Clears & High-Speed Recovery. Weather cleared, MPS restored to 130 km/h. High priority Rajdhani recovers 5 mins -> Final Dynamic Forecasted ETA = 23:02."
+            desc = f"STEP 5: Fog Clears & High-Speed Recovery. Weather cleared. High priority run recovers 5 mins."
             train["current_delay_minutes"] = 21.0
-            train["speed_kmh"] = 120.0
+            train["speed_kmh"] = 110.0
             train["status"] = "SLIGHT_DELAY"
-            self.graph.update_section_state("MTJ-AGC", weather="CLEAR", congestion=0.0)
+            self.graph.update_section_state(t_sec, weather="CLEAR", congestion=0.0)
             self.incident_sim.clear_all_incidents()
-            self.coa_sim.log_event("WEATHER_CLEARED", "Fog cleared on MTJ-AGC section. Track clear for high speed running", "TRAIN_12951", section_id="MTJ-AGC", severity="LOW")
+            self.coa_sim.log_event("WEATHER_CLEARED", f"Track clear for high speed running on {t_sec}", t_id, section_id=t_sec, severity="LOW")
         else:
             self.demo_step = 0
             return self.trigger_sih_demo_step()
 
-        eta_schema = self.compute_dynamic_eta("TRAIN_12951")
+        eta_schema = self.compute_dynamic_eta(t_id)
         return {
             "demo_step": self.demo_step,
             "description": desc,
@@ -843,22 +513,22 @@ class SimulationOrchestrator:
         for t_id, train in self.active_trains.items():
             eta_data = self.compute_dynamic_eta(t_id)
             train_schemas.append(TrainStateSchema(
-                train_id=train["train_id"],
-                train_number=train["train_number"],
-                train_name=train["train_name"],
-                train_type=train["train_type"],
-                priority=train["priority"],
-                origin_station_name=train["origin_station_name"],
-                destination_station_name=train["destination_station_name"],
-                current_section_id=train["current_section_id"],
-                next_station_id=train["next_station_id"],
-                next_station_name=train["next_station_name"],
-                latitude=train["lat"],
-                longitude=train["lng"],
-                speed_kmh=train["speed_kmh"],
-                current_delay_minutes=train["current_delay_minutes"],
-                status=train["status"],
-                last_event_description=train["last_event_description"],
+                train_id=train.get("train_id", t_id),
+                train_number=train.get("train_number", ""),
+                train_name=train.get("train_name", ""),
+                train_type=train.get("train_type", "EXPRESS"),
+                priority=train.get("priority", 2),
+                origin_station_name=train.get("origin_station_name", "Origin"),
+                destination_station_name=train.get("destination_station_name", "Destination"),
+                current_section_id=train.get("current_section_id", ""),
+                next_station_id=train.get("next_station_id", ""),
+                next_station_name=train.get("next_station_name", ""),
+                latitude=float(train.get("lat") or 0.0),
+                longitude=float(train.get("lng") or 0.0),
+                speed_kmh=float(train.get("speed_kmh") or 0.0),
+                current_delay_minutes=float(train.get("current_delay_minutes") or 0.0),
+                status=train.get("status", "ON_TIME"),
+                last_event_description=train.get("last_event_description", "Normal operations"),
                 current_eta=eta_data
             ))
 
@@ -884,59 +554,186 @@ class SimulationOrchestrator:
             incidents=self.incident_sim.active_incidents
         )
 
-    def sync_live_telemetry(self, train_number: str) -> float:
+    def trigger_background_backfill_if_unseen(self, train_number: str) -> None:
         """
-        Synchronizes live telemetry from RailRadar / RTIS API adapter.
-        Updates active train state with actual real-time delay (e.g. +20 min) if available.
+        Checks if train has been seen or ingested previously.
+        If unseen, starts a background worker thread to backfill historical runs
+        via ResumableHistoricalCollector without blocking live API response.
+        """
+        clean_train_num = train_number.replace("TRAIN_", "").strip()
+        if not clean_train_num or clean_train_num in self._seen_train_numbers:
+            return
+
+        self._seen_train_numbers.add(clean_train_num)
+
+        import threading
+        def _backfill_worker():
+            try:
+                from app.db.database import SessionLocal, engine
+                from app.db.models import Base, HistoricalTrainRun, CollectionJob
+                from app.services.historical_collector import ResumableHistoricalCollector
+                from datetime import datetime, timedelta
+
+                Base.metadata.create_all(bind=engine)
+                db = SessionLocal()
+                try:
+                    existing_runs = db.query(HistoricalTrainRun).filter(HistoricalTrainRun.train_number == clean_train_num).first()
+                    if existing_runs:
+                        return
+                    existing_job = db.query(CollectionJob).filter(CollectionJob.train_number == clean_train_num).first()
+                    if existing_job and existing_job.status in ("RUNNING", "COMPLETED"):
+                        return
+
+                    logger.info(f"[ORCHESTRATOR] Starting background historical backfill for unseen train {clean_train_num}")
+                    collector = ResumableHistoricalCollector(db)
+                    today = datetime.now()
+                    start_date = (today - timedelta(days=14)).strftime("%Y-%m-%d")
+                    end_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+
+                    job = collector.create_job(clean_train_num, start_date, end_date)
+                    collector.run_job(job.job_id)
+                    logger.info(f"[ORCHESTRATOR] Completed background backfill for train {clean_train_num}")
+                finally:
+                    db.close()
+            except Exception as e:
+                logger.warning(f"[ORCHESTRATOR] Background backfill failed for train {clean_train_num}: {e}")
+
+        thread = threading.Thread(target=_backfill_worker, daemon=True, name=f"backfill_{clean_train_num}")
+        thread.start()
+
+    def sync_live_telemetry(self, train_number: str, journey_date: Optional[str] = None) -> Optional[float]:
+        """
+        Synchronizes live telemetry from RailRadar / NTES API adapter.
+        If train is not yet active, dynamically instantiates it with authentic stations from the API.
+        Returns live delay in minutes, or None if train is not found.
         """
         try:
+            clean_train_num = train_number.replace("TRAIN_", "").strip()
+            normalized_id = f"TRAIN_{clean_train_num}"
+
             from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
             adapter = WhereIsMyTrainHistoricalAdapter()
-            live_status = adapter.fetch_live_train_status(train_number)
-            if live_status and "delay_minutes" in live_status:
-                live_delay = float(live_status["delay_minutes"])
-                normalized_id = f"TRAIN_{train_number}"
-                trains_list = list(self.active_trains.values()) if isinstance(self.active_trains, dict) else self.active_trains
-                for t in trains_list:
-                    t_num = getattr(t, "train_number", None) or (t.get("train_number") if isinstance(t, dict) else None)
-                    if t_num == train_number or getattr(t, "train_id", None) == normalized_id:
-                        st_val = "HEAVY_DELAY" if live_delay >= 15 else ("SLIGHT_DELAY" if live_delay >= 5 else "ON_TIME")
-                        cur_st_code = live_status.get("current_station_code")
-                        cur_st_name = live_status.get("current_station_name")
-                        st_delays = live_status.get("station_delays", {})
-                        st_dep_delays = live_status.get("station_dep_delays", {})
-                        st_arr_delays = live_status.get("station_arr_delays", {})
+            live_status = adapter.fetch_live_train_status(clean_train_num, journey_date=journey_date)
 
-                        if isinstance(t, dict):
-                            t["current_delay_minutes"] = live_delay
-                            t["status"] = st_val
-                            t["station_delays"] = st_delays
-                            t["station_dep_delays"] = st_dep_delays
-                            t["station_arr_delays"] = st_arr_delays
+            if not live_status or "delay_minutes" not in live_status:
+                logger.warning(f"[ORCHESTRATOR] Train {clean_train_num} not found or no live telemetry available.")
+                return None
+
+            live_delay = float(live_status.get("delay_minutes", 0.0))
+            st_val = "HEAVY_DELAY" if live_delay >= 15 else ("SLIGHT_DELAY" if live_delay >= 5 else "ON_TIME")
+            cur_st_code = live_status.get("current_station_code")
+            cur_st_name = live_status.get("current_station_name")
+            cur_dist_km = live_status.get("current_distance_km")
+            active_j_date = live_status.get("active_journey_date")
+            st_delays = live_status.get("station_delays", {})
+            st_dep_delays = live_status.get("station_dep_delays", {})
+            st_arr_delays = live_status.get("station_arr_delays", {})
+            stations = live_status.get("stations", [])
+
+            # Dynamic Graph Registration for any new stations & section edges
+            if stations and hasattr(self, "graph") and hasattr(self.graph, "register_route_stations"):
+                self.graph.register_route_stations(stations)
+
+            # Check if train already exists in active_trains
+            train_found = False
+            trains_list = list(self.active_trains.values()) if isinstance(self.active_trains, dict) else self.active_trains
+            for t in trains_list:
+                t_num = getattr(t, "train_number", None) or (t.get("train_number") if isinstance(t, dict) else None)
+                t_id = getattr(t, "train_id", None) or (t.get("train_id") if isinstance(t, dict) else None)
+                if t_num == clean_train_num or t_id == normalized_id:
+                    train_found = True
+                    if isinstance(t, dict):
+                        t["current_delay_minutes"] = live_delay
+                        t["status"] = st_val
+                        t["station_delays"] = st_delays
+                        t["station_dep_delays"] = st_dep_delays
+                        t["station_arr_delays"] = st_arr_delays
+                        if cur_dist_km is not None:
+                            t["current_distance_km"] = cur_dist_km
+                        if active_j_date:
+                            t["active_journey_date"] = active_j_date
+                        if stations:
+                            t["stations"] = stations
+                        if cur_st_code:
+                            t["current_station_code"] = cur_st_code
+                            t["next_station_id"] = cur_st_code
+                        if cur_st_name:
+                            t["current_station_name"] = cur_st_name
+                            t["next_station_name"] = cur_st_name
+                    else:
+                        try:
+                            setattr(t, "current_delay_minutes", live_delay)
+                            setattr(t, "status", st_val)
+                            setattr(t, "station_delays", st_delays)
+                            setattr(t, "station_dep_delays", st_dep_delays)
+                            setattr(t, "station_arr_delays", st_arr_delays)
+                            if cur_dist_km is not None:
+                                setattr(t, "current_distance_km", cur_dist_km)
+                            if active_j_date:
+                                setattr(t, "active_journey_date", active_j_date)
                             if cur_st_code:
-                                t["current_station_code"] = cur_st_code
-                                t["next_station_id"] = cur_st_code
+                                setattr(t, "next_station_id", cur_st_code)
                             if cur_st_name:
-                                t["current_station_name"] = cur_st_name
-                                t["next_station_name"] = cur_st_name
-                        else:
-                            try:
-                                setattr(t, "current_delay_minutes", live_delay)
-                                setattr(t, "status", st_val)
-                                setattr(t, "station_delays", st_delays)
-                                setattr(t, "station_dep_delays", st_dep_delays)
-                                setattr(t, "station_arr_delays", st_arr_delays)
-                                if cur_st_code:
-                                    setattr(t, "next_station_id", cur_st_code)
-                                if cur_st_name:
-                                    setattr(t, "next_station_name", cur_st_name)
-                            except Exception:
-                                pass
-                return live_delay
+                                setattr(t, "next_station_name", cur_st_name)
+                        except Exception:
+                            pass
+                    break
+
+            if not train_found:
+                # Dynamically instantiate new train record from authentic API response
+                origin_name = stations[0]["name"] if stations else "Origin"
+                origin_code = stations[0]["code"] if stations else "ORIG"
+                dest_name = stations[-1]["name"] if stations else "Destination"
+                dest_code = stations[-1]["code"] if stations else "DEST"
+                dest_sched_arr = stations[-1]["sched_arr"] if stations else "23:59"
+                train_name = live_status.get("train_name") or f"Train {clean_train_num}"
+
+                new_train = {
+                    "train_id": normalized_id,
+                    "train_number": clean_train_num,
+                    "train_name": train_name,
+                    "priority": 1,
+                    "status": st_val,
+                    "current_delay_minutes": live_delay,
+                    "origin_station_id": origin_code,
+                    "origin_station_name": origin_name,
+                    "destination_station_id": dest_code,
+                    "destination_station_name": dest_name,
+                    "destination_sched_arr": dest_sched_arr,
+                    "stations": stations,
+                    "current_section_id": f"{stations[0]['code']}-{stations[1]['code']}" if len(stations) > 1 else f"{origin_code}-{dest_code}",
+                    "last_station_id": origin_code,
+                    "next_station_id": cur_st_code or (stations[1]["code"] if len(stations) > 1 else (stations[0]["code"] if stations else "ST1")),
+                    "next_station_name": cur_st_name or (stations[1]["name"] if len(stations) > 1 else (stations[0]["name"] if stations else "Station")),
+                    "current_distance_km": cur_dist_km,
+                    "active_journey_date": active_j_date or journey_date,
+                    "lat": float(stations[0].get("lat", 28.6139)) if stations and stations[0].get("lat") else 28.6139,
+                    "lng": float(stations[0].get("lng", 77.2090)) if stations and stations[0].get("lng") else 77.2090,
+                    "distance_into_section_km": 15.0,
+                    "speed_kmh": 110.0,
+                    "station_delays": st_delays,
+                    "station_dep_delays": st_dep_delays,
+                    "station_arr_delays": st_arr_delays,
+                }
+                if isinstance(self.active_trains, dict):
+                    self.active_trains[normalized_id] = new_train
+                elif isinstance(self.active_trains, list):
+                    self.active_trains.append(new_train)
+
+                if normalized_id not in self.changepoint_detectors:
+                    try:
+                        self.changepoint_detectors[normalized_id] = CUSUMChangePointDetector()
+                    except Exception:
+                        pass
+
+            # Non-blocking background historical backfill trigger for unseen trains
+            self.trigger_background_backfill_if_unseen(clean_train_num)
+
+            return live_delay
 
         except Exception as e:
-            print(f"[ORCHESTRATOR] Could not sync live RTIS telemetry for train {train_number}: {e}")
-        return 0.0
+            logger.error(f"[ORCHESTRATOR] Could not sync live RTIS telemetry for train {train_number}: {e}")
+            return None
 
     def get_train_route_timeline(self, train_id: str, journey_date: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Returns the full station-by-station route timeline for a train."""
@@ -944,40 +741,54 @@ class SimulationOrchestrator:
         today_str = datetime.now().strftime("%Y-%m-%d")
         effective_date = journey_date if journey_date else today_str
         
+        clean_train_num = train_id.replace("TRAIN_", "") if "TRAIN_" in train_id else train_id
+
         is_live = False
         if effective_date == today_str:
             is_live = True
         else:
-            clean_train_num = train_id.replace("TRAIN_", "") if "TRAIN_" in train_id else train_id
-            stations_def = route_catalogs.get(str(clean_train_num), route_catalogs["12951"])
-            
-            start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
-            
-            start_dt = datetime.strptime(effective_date, "%Y-%m-%d").replace(hour=start_h, minute=start_m)
-            
-            # calculate explicit end_dt
-            end_dt = start_dt
-            current_abs = start_h * 60 + start_m
-            for st in stations_def[1:]:
-                h, m = map(int, st["sched_arr"].split(":"))
-                if (h*60 + m) < current_abs:
-                    end_dt += timedelta(days=1)
-                current_abs = h*60 + m
-                
-            now = datetime.now()
-            if start_dt <= now <= (end_dt + timedelta(minutes=360)): 
-                is_live = True
+            # Check if effective_date spans into today based on authentic route
+            normalized_id = f"TRAIN_{clean_train_num}"
+            train_obj = self.active_trains.get(normalized_id) if isinstance(self.active_trains, dict) else None
+            stations_def = train_obj.get("stations") if train_obj else None
+            if not stations_def:
+                from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
+                adapter = WhereIsMyTrainHistoricalAdapter()
+                route_res = adapter.fetch_train_route(clean_train_num)
+                stations_def = route_res.get("stations") if route_res else None
+
+            if stations_def and len(stations_def) > 0 and stations_def[0].get("sched_dep"):
+                try:
+                    start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
+                    start_dt = datetime.strptime(effective_date, "%Y-%m-%d").replace(hour=start_h, minute=start_m)
+                    
+                    end_dt = start_dt
+                    current_abs = start_h * 60 + start_m
+                    for st in stations_def[1:]:
+                        if st.get("sched_arr") and ":" in st["sched_arr"]:
+                            h, m = map(int, st["sched_arr"].split(":"))
+                            if (h*60 + m) < current_abs:
+                                end_dt += timedelta(days=1)
+                            current_abs = h*60 + m
+                    
+                    now = datetime.now()
+                    if start_dt <= now <= (end_dt + timedelta(minutes=360)): 
+                        is_live = True
+                except Exception:
+                    pass
         
-        if is_live:
-            return self._get_live_route_timeline(train_id, effective_date)
-        return self._get_historical_route_timeline(train_id, effective_date)
+        timeline = self._get_live_route_timeline(train_id, effective_date) if is_live else self._get_historical_route_timeline(train_id, effective_date)
+        if timeline:
+            self.trigger_background_backfill_if_unseen(clean_train_num)
+        return timeline
 
     def _get_live_route_timeline(self, train_id: str, journey_date: str) -> Optional[Dict[str, Any]]:
+        from datetime import datetime, timedelta
         normalized_id = train_id if train_id.startswith("TRAIN_") else f"TRAIN_{train_id}"
         clean_train_num = train_id.replace("TRAIN_", "")
 
         # Automatically sync live telemetry
-        live_telemetry_synced_delay = self.sync_live_telemetry(clean_train_num)
+        live_telemetry_synced_delay = self.sync_live_telemetry(clean_train_num, journey_date=journey_date)
 
         found_train = None
         
@@ -985,25 +796,63 @@ class SimulationOrchestrator:
         for t in trains_list:
             t_id = getattr(t, "train_id", None) or (t.get("train_id") if isinstance(t, dict) else None)
             t_num = getattr(t, "train_number", None) or (t.get("train_number") if isinstance(t, dict) else None)
-            if t_id == normalized_id or t_num == train_id:
+            if t_id == normalized_id or t_num == clean_train_num:
                 found_train = t
                 break
 
         if not found_train:
-            state = self.get_full_simulation_state()
-            for t in state.trains:
-                if t.train_id == normalized_id or t.train_number == train_id:
-                    found_train = {
-                        "train_id": t.train_id,
-                        "train_number": t.train_number,
-                        "train_name": t.train_name,
-                        "origin_station_name": t.origin_station_name,
-                        "destination_station_name": t.destination_station_name,
-                        "next_station_id": t.next_station_id,
-                        "next_station_name": t.next_station_name,
-                        "current_delay_minutes": t.current_delay_minutes
-                    }
-                    break
+            from app.db.database import SessionLocal
+            from app.db.models import HistoricalTrainRun
+            db = SessionLocal()
+            try:
+                db_runs = db.query(HistoricalTrainRun).filter(
+                    HistoricalTrainRun.train_number == clean_train_num
+                ).order_by(HistoricalTrainRun.station_sequence).all()
+                if db_runs:
+                    db_stations = []
+                    seen_st = set()
+                    for r in db_runs:
+                        if r.station_code not in seen_st:
+                            seen_st.add(r.station_code)
+                            db_stations.append({
+                                "code": r.station_code,
+                                "name": r.station_name or r.station_code,
+                                "dist": float(r.distance_from_origin or 0.0),
+                                "sched_arr": r.scheduled_arrival or "--:--",
+                                "sched_dep": r.scheduled_departure or "--:--",
+                                "platform": "1",
+                                "is_halt": True,
+                                "status": "upcoming"
+                            })
+                    if db_stations:
+                        new_train = {
+                            "train_id": normalized_id,
+                            "train_number": clean_train_num,
+                            "train_name": getattr(db_runs[0], "train_name", None) or f"Train {clean_train_num}",
+                            "priority": 1,
+                            "status": "ON_TIME",
+                            "current_delay_minutes": 0.0,
+                            "origin_station_id": db_stations[0]["code"],
+                            "origin_station_name": db_stations[0]["name"],
+                            "destination_station_id": db_stations[-1]["code"],
+                            "destination_station_name": db_stations[-1]["name"],
+                            "destination_sched_arr": db_stations[-1]["sched_arr"],
+                            "stations": db_stations,
+                            "current_section_id": f"{db_stations[0]['code']}-{db_stations[1]['code']}" if len(db_stations) > 1 else f"{db_stations[0]['code']}-END",
+                            "last_station_id": db_stations[0]["code"],
+                            "next_station_id": db_stations[1]["code"] if len(db_stations) > 1 else db_stations[0]["code"],
+                            "next_station_name": db_stations[1]["name"] if len(db_stations) > 1 else db_stations[0]["name"],
+                            "active_journey_date": journey_date,
+                            "speed_kmh": 90.0,
+                            "station_delays": {},
+                            "station_dep_delays": {},
+                            "station_arr_delays": {},
+                        }
+                        if isinstance(self.active_trains, dict):
+                            self.active_trains[normalized_id] = new_train
+                        found_train = new_train
+            finally:
+                db.close()
 
         if not found_train:
             return None
@@ -1019,47 +868,91 @@ class SimulationOrchestrator:
         train_name_val = get_val(found_train, "train_name", f"Train {clean_train_num}")
         origin_val = get_val(found_train, "origin_station_name", "Origin")
         dest_val = get_val(found_train, "destination_station_name", "Destination")
-        current_delay = get_val(found_train, "current_delay_minutes", live_telemetry_synced_delay)
+        current_delay = get_val(found_train, "current_delay_minutes", live_telemetry_synced_delay if live_telemetry_synced_delay is not None else 0.0)
         next_st_id = get_val(found_train, "next_station_id", "ST1")
         next_st_name = get_val(found_train, "next_station_name", "Upcoming Station")
         st_delays_map = get_val(found_train, "station_delays", {})
         st_dep_delays_map = get_val(found_train, "station_dep_delays", {})
         st_arr_delays_map = get_val(found_train, "station_arr_delays", {})
 
-        stations_def = route_catalogs.get(str(train_num_val), route_catalogs["12951"])
+        stations_def = get_val(found_train, "stations", None)
+        if not stations_def:
+            from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
+            adapter = WhereIsMyTrainHistoricalAdapter()
+            route_info = adapter.fetch_train_route(clean_train_num)
+            stations_def = route_info.get("stations") if route_info else None
 
-        # Force sync current_idx to realistic Wall-Clock schedule
-        from datetime import datetime
-        now_time = datetime.now()
-        
-        start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":"))
-        journey_dt = datetime.strptime(journey_date, "%Y-%m-%d")
-        start_dt = journey_dt.replace(hour=start_h, minute=start_m)
-        
-        elapsed_mins_since_start = (now_time - start_dt).total_seconds() / 60.0
-        if elapsed_mins_since_start < 0:
-            elapsed_mins_since_start = 0
-            
-        real_time_idx = 0
-        cumulative_mins = 0
-        last_abs = start_h * 60 + start_m
-        for idx, st in enumerate(stations_def):
-            arr_h, arr_m = map(int, st["sched_arr"].split(":"))
-            curr_abs = arr_h * 60 + arr_m
-            
-            if curr_abs < last_abs:
-                cumulative_mins += (24 * 60 - last_abs + curr_abs)
-            else:
-                cumulative_mins += (curr_abs - last_abs)
-            last_abs = curr_abs
-            
-            if elapsed_mins_since_start >= cumulative_mins + current_delay:
-                real_time_idx = idx
-            else:
-                break
-                
-        current_idx = min(len(stations_def) - 1, real_time_idx + 1)
-        
+        if not stations_def or len(stations_def) == 0:
+            return None
+
+        # Ground Truth Positioning based on Live Telemetry
+        cur_dist_km = get_val(found_train, "current_distance_km")
+        cur_st_code = get_val(found_train, "current_station_code")
+        cur_st_name = get_val(found_train, "current_station_name", "")
+
+        current_idx = None
+
+        # Strategy 1: Exact track distance matching against commercial halts
+        if cur_dist_km is not None and cur_dist_km > 0:
+            for idx in range(len(stations_def)):
+                st_dist = float(stations_def[idx].get("dist", 0.0) or 0.0)
+                if st_dist >= cur_dist_km:
+                    # Train is approaching or at stations_def[idx]
+                    current_idx = idx
+                    break
+            if current_idx is None:
+                current_idx = len(stations_def) - 1
+
+        # Strategy 2: Match current station code or name against route stations
+        if current_idx is None and cur_st_code:
+            for idx, st in enumerate(stations_def):
+                if st.get("code") == cur_st_code or (cur_st_name and cur_st_name.upper() in st.get("name", "").upper()):
+                    if st.get("status") == "passed":
+                        current_idx = min(len(stations_def) - 1, idx + 1)
+                    else:
+                        current_idx = idx
+                    break
+
+        # Strategy 3: Check last passed station from authentic station status list
+        if current_idx is None:
+            last_passed = -1
+            for idx, st in enumerate(stations_def):
+                if st.get("status") == "passed":
+                    last_passed = idx
+            if last_passed >= 0:
+                current_idx = min(len(stations_def) - 1, last_passed + 1)
+
+        # Strategy 4: Fallback to schedule calculation only if telemetry is absent
+        if current_idx is None:
+            from datetime import datetime
+            now_time = datetime.now()
+            start_h, start_m = map(int, stations_def[0]["sched_dep"].split(":")) if (stations_def[0].get("sched_dep") and ":" in stations_def[0]["sched_dep"]) else (0, 0)
+            try:
+                journey_dt = datetime.strptime(journey_date, "%Y-%m-%d")
+            except Exception:
+                journey_dt = now_time
+            start_dt = journey_dt.replace(hour=start_h, minute=start_m)
+            elapsed_mins_since_start = (now_time - start_dt).total_seconds() / 60.0
+            if elapsed_mins_since_start < 0:
+                elapsed_mins_since_start = 0
+            real_time_idx = 0
+            cumulative_mins = 0
+            last_abs = start_h * 60 + start_m
+            for idx, st in enumerate(stations_def):
+                sched_arr_val = st.get("sched_arr", "00:00")
+                arr_h, arr_m = map(int, sched_arr_val.split(":")) if ":" in sched_arr_val else (0, 0)
+                curr_abs = arr_h * 60 + arr_m
+                if curr_abs < last_abs:
+                    cumulative_mins += (24 * 60 - last_abs + curr_abs)
+                else:
+                    cumulative_mins += (curr_abs - last_abs)
+                last_abs = curr_abs
+                if elapsed_mins_since_start >= cumulative_mins + current_delay:
+                    real_time_idx = idx
+                else:
+                    break
+            current_idx = min(len(stations_def) - 1, real_time_idx + 1)
+
         # Determine actual header station states
         actual_next_station = stations_def[current_idx]["name"]
         actual_prev_station = stations_def[current_idx-1]["name"] if current_idx > 0 else stations_def[0]["name"]
@@ -1075,16 +968,24 @@ class SimulationOrchestrator:
         for idx, st in enumerate(stations_def):
             st_code = st["code"]
             st_name = st["name"].upper()
-            
+
             # If train is moving between prev_st and current_st, insert In-Between section item
             if idx == current_idx and current_idx > 0:
                 prev_st = stations_def[idx - 1]
                 st_A_name = prev_st["name"]
                 st_B_name = st["name"]
-                dist_into = get_val(found_train, "distance_into_section_km", 25.0)
-                sec_dist = max(10.0, st["dist"] - prev_st["dist"])
-                progress_pct = min(0.95, max(0.05, dist_into / sec_dist))
-                in_between_dist = round(prev_st["dist"] + (sec_dist * progress_pct), 1)
+                prev_d = float(prev_st.get("dist", 0.0) or 0.0)
+                curr_d = float(st.get("dist", 0.0) or 0.0)
+                sec_dist = max(5.0, curr_d - prev_d)
+
+                if cur_dist_km is not None and prev_d <= cur_dist_km <= curr_d and sec_dist > 0:
+                    in_between_dist = cur_dist_km
+                    progress_pct = min(0.98, max(0.02, (cur_dist_km - prev_d) / sec_dist))
+                else:
+                    dist_into = get_val(found_train, "distance_into_section_km", 25.0)
+                    progress_pct = min(0.95, max(0.05, dist_into / sec_dist))
+                    in_between_dist = round(prev_d + (sec_dist * progress_pct), 1)
+
                 speed_val = get_val(found_train, "speed_kmh", 110.0)
                 
                 route_items.append({
@@ -1115,6 +1016,10 @@ class SimulationOrchestrator:
                 passed_current = True
                 is_current = False
                 status_str = "UPCOMING"
+            elif idx == current_idx and not passed_current:
+                is_current = True
+                status_str = "CURRENT"
+                passed_current = True
             elif idx < current_idx and not passed_current:
                 is_current = False
                 status_str = "PASSED"
@@ -1123,8 +1028,10 @@ class SimulationOrchestrator:
                 status_str = "UPCOMING"
 
             # Parse scheduled time
-            arr_h, arr_m = map(int, st["sched_arr"].split(":"))
-            dep_h, dep_m = map(int, st["sched_dep"].split(":"))
+            sched_arr_str = st.get("sched_arr", "00:00")
+            sched_dep_str = st.get("sched_dep", "00:00")
+            arr_h, arr_m = map(int, sched_arr_str.split(":")) if ":" in sched_arr_str else (0, 0)
+            dep_h, dep_m = map(int, sched_dep_str.split(":")) if ":" in sched_dep_str else (0, 0)
 
             # Station-specific departure delay vs arrival delay from live telemetry
             specific_arr_del = st_arr_delays_map.get(st_code, st_delays_map.get(st_code))
@@ -1140,31 +1047,46 @@ class SimulationOrchestrator:
                 ml_status_flag = "LIVE"
             else:
                 # UPCOMING Station: Dynamic ML Delay Progression using historical station arrival delay records
-                prev_st = stations_def[idx - 1]
-                section_dist = max(10.0, st["dist"] - prev_st["dist"])
+                prev_st = stations_def[idx - 1] if idx > 0 else st
                 is_junction = any(jk in st_name or jk in st_code for jk in junction_keywords)
 
                 # Calculate station-to-station historical median delay delta
-                total_route_km = float(stations_def[-1]["dist"]) if stations_def else 1000.0
-                curr_km = float(stations_def[current_idx]["dist"]) if current_idx < len(stations_def) else 0.0
+                total_route_km = float(stations_def[-1].get("dist", 1000.0)) if stations_def else 1000.0
+                curr_km = float(stations_def[current_idx].get("dist", 0.0)) if current_idx < len(stations_def) else 0.0
                 rem_km = max(1.0, total_route_km - curr_km)
-                station_dist_from_curr = max(0.0, float(st["dist"]) - curr_km)
+                station_dist_from_curr = max(0.0, float(st.get("dist", 0.0)) - curr_km)
                 
                 # Compound historical bottleneck delay factor
                 hist_bottleneck_factor = 1.35 if is_junction else 1.05
-                hist_accumulated_delta = (station_dist_from_curr / rem_km) * (43.4 if "12626" in str(train_num_val) else 18.5) * hist_bottleneck_factor
+                hist_accumulated_delta = (station_dist_from_curr / rem_km) * 20.0 * hist_bottleneck_factor
 
-                _now = datetime.now()
+                # Parse actual journey date for weekday pattern and calendar anomaly
+                journey_dt = None
+                for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y"):
+                    try:
+                        journey_dt = datetime.strptime(str(journey_date)[:10], fmt)
+                        break
+                    except Exception:
+                        pass
+                if journey_dt is None:
+                    journey_dt = datetime.now()
+
+                nxt_st_code = stations_def[idx + 1]["code"] if idx + 1 < len(stations_def) else None
+                sched_hour_frac = float(arr_h) + (arr_m / 60.0)
+
                 if hasattr(self, "predictor") and self.predictor is not None:
                     try:
                         _, gbr_pred, _, _, _ = self.predictor.predict_multi_quantile_delays(
                             current_delay_min=current_delay + hist_accumulated_delta,
                             station_sequence=idx + 1,
-                            distance_from_origin=float(st["dist"]),
+                            distance_from_origin=float(st.get("dist", 0.0)),
                             total_distance=total_route_km,
-                            day_of_week=float(_now.weekday()),
-                            month=float(_now.month),
-                            hour=float(_now.hour) + _now.minute / 60.0
+                            day_of_week=float(journey_dt.weekday()),
+                            month=float(journey_dt.month),
+                            hour=sched_hour_frac,
+                            station_code=st_code,
+                            next_station_code=nxt_st_code,
+                            journey_date=journey_date
                         )
                         st_ml_delay = round(max(current_delay, gbr_pred), 1)
                         ml_status_flag = "ONLINE"
@@ -1204,17 +1126,40 @@ class SimulationOrchestrator:
 
             diff_delay = round(st_ml_delay - st_live_delay, 1)
 
-            # Calculate Quantiles P10, P50, P90 and confidence bounds for route item
-            _now = datetime.now()
-            p10_del, p50_del, p90_del, conf_score, crps_val = self.predictor.predict_multi_quantile_delays(
-                current_delay_min=st_ml_delay,
-                station_sequence=idx + 1,
-                distance_from_origin=float(st["dist"]),
-                total_distance=float(stations_def[-1]["dist"]) if stations_def else 1000.0,
-                day_of_week=float(_now.weekday()),
-                month=float(_now.month),
-                hour=float(_now.hour) + _now.minute / 60.0
-            )
+            # Calculate Quantiles P10, P50, P90 using exact journey weekday & calendar date pattern
+            journey_dt = None
+            for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y"):
+                try:
+                    journey_dt = datetime.strptime(str(journey_date)[:10], fmt)
+                    break
+                except Exception:
+                    pass
+            if journey_dt is None:
+                journey_dt = datetime.now()
+
+            nxt_st = stations_def[idx + 1] if idx + 1 < len(stations_def) else None
+            nxt_st_code = nxt_st["code"] if nxt_st else None
+            sec_dist_to_next = max(1.0, float(nxt_st.get("dist", 0.0) or 0.0) - float(st.get("dist", 0.0) or 0.0)) if nxt_st else 80.0
+
+            p10_del = max(0.0, st_ml_delay - 5.0)
+            p50_del = st_ml_delay
+            p90_del = st_ml_delay + 10.0
+            if hasattr(self, "predictor") and self.predictor is not None:
+                try:
+                    p10_del, p50_del, p90_del, conf_score, crps_val = self.predictor.predict_multi_quantile_delays(
+                        current_delay_min=st_ml_delay,
+                        station_sequence=idx + 1,
+                        distance_from_origin=float(st.get("dist", 0.0) or 0.0),
+                        total_distance=float(stations_def[-1].get("dist", 1000.0) or 1000.0) if stations_def else 1000.0,
+                        day_of_week=float(journey_dt.weekday()),
+                        month=float(journey_dt.month),
+                        hour=float(arr_h) + (arr_m / 60.0),
+                        station_code=st_code,
+                        next_station_code=nxt_st_code,
+                        journey_date=journey_date
+                    )
+                except Exception as e:
+                    pass
 
             p10_m = (arr_m + int(p10_del)) % 60
             p10_h = (arr_h + (arr_m + int(p10_del)) // 60) % 24
@@ -1230,14 +1175,26 @@ class SimulationOrchestrator:
             eta_p90_str = f"{p90_h:02d}:{p90_m:02d}"
             conf_margin = round((p90_del - p10_del) / 2.0, 1)
 
+            temporal_engine = getattr(self.predictor, "temporal_engine", None)
+            same_wd_pattern = None
+            date_anomaly_val = None
+            recovery_cap = None
+            if temporal_engine:
+                try:
+                    same_wd_pattern, _ = temporal_engine.get_same_weekday_delay(st_code, idx + 1, journey_dt.weekday())
+                    date_anomaly_val = temporal_engine.get_calendar_date_anomaly(st_code, idx + 1, journey_dt)
+                    recovery_cap, _ = temporal_engine.get_section_delay_recovery_capability(st_code, nxt_st_code, distance_km=sec_dist_to_next)
+                except Exception as e:
+                    pass
+
             route_items.append({
                 "station_id": st["code"],
                 "station_code": st["code"],
                 "station_name": st["name"],
-                "distance_km": st["dist"],
-                "platform_number": st["platform"],
-                "scheduled_arrival": st["sched_arr"],
-                "scheduled_departure": st["sched_dep"],
+                "distance_km": st.get("dist", 0.0),
+                "platform_number": st.get("platform", "1"),
+                "scheduled_arrival": sched_arr_str,
+                "scheduled_departure": sched_dep_str,
                 "forecasted_arrival": forecasted_arr_str,
                 "forecasted_departure": forecasted_dep_str,
                 "arrival_delay_minutes": round(st_live_arr_del, 1),
@@ -1250,15 +1207,15 @@ class SimulationOrchestrator:
                 "live_telemetry_delay_minutes": round(st_live_dep_del, 1),
                 "ml_predicted_delay_minutes": st_ml_delay,
                 "delay_difference_minutes": diff_delay,
+                "same_weekday_pattern_minutes": round(same_wd_pattern, 1) if same_wd_pattern is not None else None,
+                "calendar_date_anomaly_minutes": round(date_anomaly_val, 1) if date_anomaly_val is not None else 0.0,
+                "chain_recovery_capability_minutes": round(recovery_cap, 1) if recovery_cap is not None else 0.0,
                 "status": status_str,
                 "is_current_position": is_current,
                 "ml_status_flag": ml_status_flag,
                 "delay_reasons": self._build_delay_reasons_for_section(active_section_id, found_train) if status_str != "PASSED" else []
             })
 
-
-
-        # Determine active event description or fallback
         # Determine actual textual marker
         if current_idx >= len(stations_def) - 1:
             status_msg = f"Arrived at {dest_val} — journey completed"
@@ -1279,6 +1236,7 @@ class SimulationOrchestrator:
             "total_delay_minutes": current_delay,
             "status_message": status_msg,
             "last_updated": self.get_current_timestamp(),
+            "active_journey_date": get_val(found_train, "active_journey_date", journey_date),
             "formatted_confidence_eta": formatted_eta,
             "route_items": route_items
         }
@@ -1297,63 +1255,55 @@ class SimulationOrchestrator:
             ).order_by(HistoricalTrainRun.station_sequence).all()
             
             if not runs:
-                # Fallback to general schedule for dates with no DB records
-                stations_def = route_catalogs.get(str(clean_train_num), route_catalogs["12951"])
-                
-                route_items = []
-                for st in stations_def:
-                    route_items.append({
-                        "station_id": st["code"],
-                        "station_code": st["code"],
-                        "station_name": st["name"],
-                        "distance_km": float(st["dist"]),
-                        "platform_number": str(st["platform"]),
-                        "scheduled_arrival": st["sched_arr"],
-                        "scheduled_departure": st["sched_dep"],
-                        "forecasted_arrival": st["sched_arr"],
-                        "forecasted_departure": st["sched_dep"],
-                        "arrival_delay_minutes": 0.0,
-                        "departure_delay_minutes": 0.0,
-                        "ml_forecasted_arrival": "-",
-                        "eta_p10": None,
-                        "eta_p50": None,
-                        "eta_p90": None,
-                        "confidence_margin_minutes": None,
-                        "live_telemetry_delay_minutes": 0.0,
-                        "ml_predicted_delay_minutes": 0.0,
-                        "delay_difference_minutes": 0.0,
-                        "status": "PASSED",
-                        "is_current_position": False,
-                        "ml_status_flag": "HISTORICAL",
-                        "delay_reasons": []
-                    })
-                
-                origin = stations_def[0]["name"]
-                dest = stations_def[-1]["name"]
-                
-                return {
-                    "train_id": train_id,
-                    "train_number": clean_train_num,
-                    "train_name": f"Train {clean_train_num}",
-                    "origin_station_name": origin,
-                    "destination_station_name": dest,
-                    "current_station_name": dest,
-                    "next_station_name": "-",
-                    "total_delay_minutes": 0.0,
-                    "status_message": f"Historical Journey Completed (Dest: {dest})",
-                    "formatted_confidence_eta": "-",
-                    "last_updated": self.get_current_timestamp(),
-                    "route_items": route_items
-                }
+                # Attempt to fetch historical day from adapter
+                try:
+                    from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
+                    from app.services.historical_normalizer import HistoricalNormalizer
+                    adapter = WhereIsMyTrainHistoricalAdapter()
+                    raw_day = adapter.fetch_train_day(clean_train_num, journey_date)
+                    if raw_day:
+                        normalized = HistoricalNormalizer.normalize_journey(raw_day)
+                        if normalized:
+                            for rec in normalized:
+                                db.add(rec)
+                            db.commit()
+                            runs = normalized
+                except Exception as e:
+                    logger.warning(f"Failed fetching historical day from adapter: {e}")
+
+            if not runs:
+                # Train/date has no historical records and cannot be fetched; return None (never substitute another train)
+                return None
             
+            origin = runs[0].station_name or runs[0].station_code
+            dest = runs[-1].station_name or runs[-1].station_code
+
+            temporal_engine = getattr(self.predictor, "temporal_engine", None)
+            try:
+                dt_obj = datetime.strptime(str(journey_date)[:10], "%Y-%m-%d")
+                wd = dt_obj.weekday()
+            except Exception:
+                dt_obj = datetime.now()
+                wd = dt_obj.weekday()
+
             route_items = []
-            for run in runs:
+            for idx, run in enumerate(runs):
+                same_wd_pattern = None
+                date_anomaly_val = None
+                recovery_cap = None
+                if temporal_engine:
+                    nxt_code = runs[idx + 1].station_code if idx + 1 < len(runs) else None
+                    sec_dist = max(1.0, float(runs[idx + 1].distance_from_origin or 0.0) - float(run.distance_from_origin or 0.0)) if idx + 1 < len(runs) else 80.0
+                    same_wd_pattern, _ = temporal_engine.get_same_weekday_delay(run.station_code, idx + 1, wd)
+                    date_anomaly_val = temporal_engine.get_calendar_date_anomaly(run.station_code, idx + 1, dt_obj)
+                    recovery_cap, _ = temporal_engine.get_section_delay_recovery_capability(run.station_code, nxt_code, distance_km=sec_dist)
+
                 route_items.append({
                     "station_id": run.station_code,
                     "station_code": run.station_code,
                     "station_name": run.station_name,
                     "distance_km": run.distance_from_origin or 0.0,
-                    "platform_number": "1", # default placeholder for history
+                    "platform_number": "1",
                     "scheduled_arrival": run.scheduled_arrival or "-",
                     "scheduled_departure": run.scheduled_departure or "-",
                     "forecasted_arrival": run.actual_arrival or "-",
@@ -1368,6 +1318,9 @@ class SimulationOrchestrator:
                     "live_telemetry_delay_minutes": run.departure_delay_minutes or 0.0,
                     "ml_predicted_delay_minutes": 0.0,
                     "delay_difference_minutes": 0.0,
+                    "same_weekday_pattern_minutes": round(same_wd_pattern, 1) if same_wd_pattern is not None else None,
+                    "calendar_date_anomaly_minutes": round(date_anomaly_val, 1) if date_anomaly_val is not None else 0.0,
+                    "chain_recovery_capability_minutes": round(recovery_cap, 1) if recovery_cap is not None else 0.0,
                     "status": "PASSED",
                     "is_current_position": False,
                     "ml_status_flag": "HISTORICAL",
@@ -1377,7 +1330,7 @@ class SimulationOrchestrator:
             return {
                 "train_id": train_id,
                 "train_number": clean_train_num,
-                "train_name": runs[0].train_name or f"Train {clean_train_num}",
+                "train_name": getattr(runs[0], "train_name", None) or f"Train {clean_train_num}",
                 "origin_station_name": origin,
                 "destination_station_name": dest,
                 "current_station_name": dest,
@@ -1390,3 +1343,4 @@ class SimulationOrchestrator:
             }
         finally:
             db.close()
+

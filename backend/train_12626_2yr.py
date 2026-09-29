@@ -8,7 +8,7 @@ sys.path.insert(0, r"c:\Users\aryah\train_schedule\backend")
 from app.db.database import SessionLocal, engine
 from app.db.models import Base, HistoricalTrainRun
 from app.ml.historical_pipeline import HistoricalMLPipeline
-from app.simulation.orchestrator import route_catalogs
+from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
 
 # Ensure DB tables exist
 Base.metadata.create_all(bind=engine)
@@ -27,7 +27,9 @@ db.commit()
 base_date = datetime.now() - timedelta(days=730)  # 2 years ago
 sample_runs = []
 
-catalog_12626 = route_catalogs.get("12626", [])
+adapter = WhereIsMyTrainHistoricalAdapter()
+route_info = adapter.fetch_train_route("12626")
+catalog_12626 = route_info.get("stations", []) if route_info else []
 total_dist = catalog_12626[-1]["dist"] if catalog_12626 else 2626.0
 
 print(f"Total Stoppage Stations for Train 12626: {len(catalog_12626)} stations")

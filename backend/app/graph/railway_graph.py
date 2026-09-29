@@ -203,3 +203,46 @@ class RailwayNetworkGraph:
                 sec_id = f"{stations[i+1]}-{stations[i]}"
             sections.append(sec_id)
         return sections
+
+    def register_route_stations(self, stations: List[Dict[str, Any]]):
+        """Dynamically registers stations and interconnecting sections into the network graph."""
+        for idx, st in enumerate(stations):
+            code = st.get("code")
+            if not code:
+                continue
+            if code not in self.stations_dict:
+                st_data = {
+                    "id": code,
+                    "code": code,
+                    "name": st.get("name", code),
+                    "lat": float(st.get("lat", 28.6139)),
+                    "lng": float(st.get("lng", 77.2090)),
+                    "platforms": int(st.get("platform", 4) if str(st.get("platform", "4")).isdigit() else 4),
+                    "dwell": 5.0,
+                    "seq": idx
+                }
+                self.stations_dict[code] = st_data
+                self.graph.add_node(code, **st_data)
+
+            if idx > 0:
+                prev_code = stations[idx - 1].get("code")
+                if prev_code:
+                    sec_id_fwd = f"{prev_code}-{code}"
+                    sec_id_rev = f"{code}-{prev_code}"
+                    if sec_id_fwd not in self.sections_dict and sec_id_rev not in self.sections_dict:
+                        dist = max(5.0, abs(float(st.get("dist", 0.0)) - float(stations[idx - 1].get("dist", 0.0))))
+                        sec_info = {
+                            "id": sec_id_fwd,
+                            "from": prev_code,
+                            "to": code,
+                            "dist": dist,
+                            "mps": 110.0,
+                            "current_speed_limit": 110.0,
+                            "is_blocked": False,
+                            "weather": "CLEAR",
+                            "occupied_by": None,
+                            "congestion": 0.0
+                        }
+                        self.sections_dict[sec_id_fwd] = sec_info
+                        self.graph.add_edge(prev_code, code, **sec_info)
+                        self.graph.add_edge(code, prev_code, **sec_info)

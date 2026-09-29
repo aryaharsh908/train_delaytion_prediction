@@ -55,11 +55,17 @@ class HistoricalMLPipeline:
                 logger.warning("No historical rows available (real or synthetic).")
                 return np.array([]), np.array([]), [], [], {"total_training_rows": 0, "mock_synthetic_historical_count": 0, "real_railradar_count": 0, "data_provenance": "EMPTY"}
 
+        from app.ml.temporal_pattern_engine import TemporalPatternEngine
+        temporal_engine = TemporalPatternEngine(db=self.db)
+        temporal_engine.load_or_compute_profiles()
+
         feature_names = [
             "station_sequence", "distance_from_origin", "distance_to_destination",
             "arrival_delay_minutes", "departure_delay_minutes", "day_of_week", "month",
             "time_of_day_hour", "section_historical_median_time",
-            "section_historical_std_dev", "delay_delta_vs_previous", "weekday_historical_median", "weather_penalty"
+            "section_historical_std_dev", "delay_delta_vs_previous",
+            "same_weekday_historical_delay", "calendar_date_anomaly_delay",
+            "chain_delay_recovery_rate", "weather_penalty"
         ]
 
         from collections import defaultdict
@@ -70,28 +76,17 @@ class HistoricalMLPipeline:
             journeys[key].sort(key=lambda r: r.station_sequence)
 
         section_history = defaultdict(list)
-        section_wd_history = defaultdict(list)
         for rec in runs:
             sec_key = f"{rec.station_code}_{rec.station_sequence}"
             if rec.arrival_delay_minutes is not None and rec.journey_date:
                 section_history[sec_key].append((rec.journey_date, rec.arrival_delay_minutes))
-                try:
-                    wd = datetime.strptime(rec.journey_date, "%Y-%m-%d").weekday()
-                    section_wd_history[f"{sec_key}_{wd}"].append((rec.journey_date, rec.arrival_delay_minutes))
-                except: pass
-        for sec_key in section_history:
-            section_history[sec_key].sort(key=lambda t: t[0])
-        for wd_key in section_wd_history:
-            section_wd_history[wd_key].sort(key=lambda t: t[0])
-
-        def section_stats_before(sec_key: str, journey_date: str) -> Tuple[float, float]:
-            obs = [d for (dt, d) in section_history.get(sec_key, []) if dt < journey_date]
-            if not obs: return 10.0, 1.5
-            return float(np.median(obs)), (float(np.std(obs)) if len(obs) > 1 else 1.5)
-            
-        def wd_stats_before(wd_key: str, journey_date: str, sec_median: float) -> float:
-            obs = [d for (dt, d) in section_wd_history.get(wd_key, []) if dt < journey_date]
-            return float(np.median(obs)) if obs else sec_median
+        section_stats_cache = {}
+        for sec_key, dt_delays in section_history.items():
+            delays = [d for (_, d) in dt_delays]
+            if delays:
+                section_stats_cache[sec_key] = (float(np.median(delays)), float(np.std(delays)) if len(delays) > 1 else 1.5)
+            else:
+                section_stats_cache[sec_key] = (10.0, 1.5)
 
         X_rows, y_rows, meta_list = [], [], []
 
@@ -99,7 +94,13 @@ class HistoricalMLPipeline:
         weather_adapter = MockWeatherAdapter()
 
         for (train_no, journey_date), records in journeys.items():
-            dt_obj = datetime.strptime(journey_date, "%Y-%m-%d")
+            dt_str = str(journey_date)[:10]
+            try:
+                y, m, d = int(dt_str[:4]), int(dt_str[5:7]), int(dt_str[8:10])
+                dt_obj = datetime(y, m, d)
+            except Exception:
+                dt_obj = datetime.now()
+
             day_of_week = float(dt_obj.weekday())
             month = float(dt_obj.month)
 
@@ -111,8 +112,17 @@ class HistoricalMLPipeline:
                     continue
 
                 sec_key = f"{cur.station_code}_{cur.station_sequence}"
-                sec_median, sec_std = section_stats_before(sec_key, journey_date)
-                wd_median = wd_stats_before(f"{sec_key}_{int(day_of_week)}", journey_date, sec_median)
+                sec_median, sec_std = section_stats_cache.get(sec_key, (10.0, 1.5))
+
+                # 1. Day of Week Pattern: evaluates e.g. Saturday status vs past 2 years Saturday status
+                same_wd_delay, _ = temporal_engine.get_same_weekday_delay(
+                    cur.station_code or "UNK", int(cur.station_sequence or 1), int(day_of_week), default_median=sec_median
+                )
+
+                # 2. Specific Date of Month Anomaly: abnormal delays on specific calendar dates over 2 years
+                calendar_anomaly = temporal_engine.get_calendar_date_anomaly(
+                    cur.station_code or "UNK", int(cur.station_sequence or 1), dt_obj
+                )
 
                 sched_hour = 12.0
                 if cur.scheduled_arrival:
@@ -130,9 +140,15 @@ class HistoricalMLPipeline:
                      prev_arr_del = float(records[i-1].arrival_delay_minutes)
                 delay_delta = arr_del - prev_arr_del
 
-                # Simulate weather since we didn't query weather at ingest time, just map to month
+                # 3. Chain Simulation & Section Delay Recovery Capability
+                next_st_code = target_rec.station_code if target_rec else None
+                sec_dist = max(1.0, float(target_rec.distance_from_origin or 0.0) - dist_orig)
+                rec_rate, _ = temporal_engine.get_section_delay_recovery_capability(
+                    cur.station_code or "UNK", next_st_code, distance_km=sec_dist
+                )
+
+                # Simulate weather
                 is_fog = 1.0 if month in [12.0, 1.0] else 0.0
-                
                 weather_info = weather_adapter.get_weather_for_section(sec_key)
                 if weather_info.get("condition") != "CLEAR":
                     weather_penalty = weather_info.get("speed_penalty_pct", 0.0)
@@ -142,7 +158,7 @@ class HistoricalMLPipeline:
                 X_rows.append([
                     float(cur.station_sequence), dist_orig, dist_dest, arr_del, dep_del,
                     day_of_week, month, sched_hour, sec_median, sec_std,
-                    delay_delta, wd_median, weather_penalty
+                    delay_delta, same_wd_delay, calendar_anomaly, rec_rate, weather_penalty
                 ])
                 y_rows.append(float(target_rec.arrival_delay_minutes))
                 meta_list.append({

@@ -101,8 +101,7 @@ class HistoricalNormalizer:
 
     @classmethod
     def normalize_journey(cls, raw_data: Dict[str, Any]) -> List[HistoricalTrainRun]:
-        """Converts raw API response or wrapper dict into list of HistoricalTrainRun objects."""
-        train_num = str(raw_data.get("train_number", "12951"))
+        train_num = str(raw_data.get("train_number") or (raw_data.get("data", {}).get("trainNumber") if isinstance(raw_data.get("data"), dict) else "") or "")
         journey_date = str(raw_data.get("journey_date", datetime.now().strftime("%Y-%m-%d")))
         source = str(raw_data.get("source", "unknown"))
         train_name = raw_data.get("train_name")

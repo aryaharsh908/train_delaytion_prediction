@@ -133,6 +133,13 @@ if __name__ == "__main__":
     audit_database()
 
     if not args.audit_only:
-        trains = args.train or ["12302", "12951"]
+        if args.train:
+            trains = args.train
+        else:
+            train_dirs = sorted(glob.glob(os.path.join(RAW_DIR, "train_*")))
+            trains = [os.path.basename(d).replace("train_", "") for d in train_dirs]
+            if not trains:
+                print("\nNo trains specified via --train and no train_* directories found in RAW_DIR.")
+                sys.exit(0)
         run_real_backfill(trains, args.start, args.end, args.require_real, args.max_days)
         print("\nRe-run with --audit-only to confirm the new real-row counts.")

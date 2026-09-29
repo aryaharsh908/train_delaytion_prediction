@@ -19,7 +19,9 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
 }) => {
   const [routeData, setRouteData] = useState<TrainRouteResponse | null>(null);
   const [selectedStation, setSelectedStation] = useState<StationRouteItem | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchTrainNumber, setSearchTrainNumber] = useState<string>(selectedTrainId ? selectedTrainId.replace('TRAIN_', '') : '');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<'Yesterday' | 'Today' | 'Tomorrow'>('Today');
 
   const getLocalDateString = (d: Date) => {
@@ -42,6 +44,11 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
   };
 
   const loadRoute = (tId: string, isInitial: boolean = false, dateToUse?: string) => {
+    if (!tId) {
+      setRouteData(null);
+      setLoading(false);
+      return;
+    }
     const d = dateToUse !== undefined ? dateToUse : selectedDate;
     if (isInitial || !routeData || routeData.train_id !== tId) {
       setLoading(true);
@@ -49,25 +56,65 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
     fetchTrainRoute(tId, d)
       .then((data) => {
         setRouteData(data);
+        setErrorMessage(null);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error fetching train route:', err);
+        setRouteData(null);
+        setErrorMessage(`Train ${tId.replace('TRAIN_', '')} not found or no live schedule data available. Please check the train number.`);
         setLoading(false);
       });
   };
 
   useEffect(() => {
-    loadRoute(selectedTrainId, true, selectedDate);
-    const interval = setInterval(() => loadRoute(selectedTrainId, false, selectedDate), 3000);
-    return () => clearInterval(interval);
+    if (selectedTrainId) {
+      setSearchTrainNumber(selectedTrainId.replace('TRAIN_', ''));
+      loadRoute(selectedTrainId, true, selectedDate);
+      const interval = setInterval(() => loadRoute(selectedTrainId, false, selectedDate), 3000);
+      return () => clearInterval(interval);
+    } else {
+      setRouteData(null);
+      setLoading(false);
+      return undefined;
+    }
   }, [selectedTrainId, selectedDate]);
 
-  const activeTrain = trains.find((t) => t.train_id === selectedTrainId) || trains[0];
+  const handleSearchTrain = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanNum = searchTrainNumber.trim().replace(/^TRAIN_/i, '');
+    if (!cleanNum) {
+      setErrorMessage('Please enter a valid train number.');
+      return;
+    }
+    setErrorMessage(null);
+    onSelectTrain(cleanNum);
+  };
+
+  const activeTrain = (Array.isArray(trains) ? trains.find((t) => t.train_id === selectedTrainId || t.train_number === selectedTrainId || t.train_id === `TRAIN_${selectedTrainId}` || (selectedTrainId && selectedTrainId.replace('TRAIN_', '') === t.train_number)) : null) || (routeData ? {
+    train_id: routeData.train_id,
+    train_number: routeData.train_number,
+    train_name: routeData.train_name,
+    train_type: 'EXPRESS',
+    priority: 1,
+    origin_station_name: routeData.origin_station_name || 'Origin',
+    destination_station_name: routeData.destination_station_name || 'Destination',
+    current_section_id: '',
+    next_station_id: '',
+    next_station_name: routeData.next_station_name || '',
+    latitude: 0,
+    longitude: 0,
+    speed_kmh: 0,
+    current_delay_minutes: routeData.total_delay_minutes,
+    status: routeData.total_delay_minutes > 15 ? 'HEAVY_DELAY' : (routeData.total_delay_minutes > 5 ? 'SLIGHT_DELAY' : 'ON_TIME'),
+    last_event_description: routeData.status_message
+  } as TrainState : null);
   const isDelayed = routeData ? routeData.total_delay_minutes > 5 : false;
 
   const handleShare = () => {
-    const text = `🚆 ${activeTrain?.train_number} ${activeTrain?.train_name}\nStatus: ${routeData?.status_message || 'Running'}\nLive Delay: ${Math.round(routeData?.total_delay_minutes || 0)} mins\nDate: ${selectedDate}\nCheck live updates on SIH Dynamic ETA Forecast App!`;
+    const tNum = activeTrain?.train_number || routeData?.train_number || searchTrainNumber;
+    const tName = activeTrain?.train_name || routeData?.train_name || 'Train';
+    const text = `🚆 ${tNum} ${tName}\nStatus: ${routeData?.status_message || 'Running'}\nLive Delay: ${Math.round(routeData?.total_delay_minutes || 0)} mins\nDate: ${selectedDate}\nCheck live updates on SIH Dynamic ETA Forecast App!`;
     navigator.clipboard?.writeText(text);
     showToast('📋 Live status copied to clipboard!');
   };
@@ -136,10 +183,10 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
         gap: '12px'
       }}>
         
-        {/* Top Row: Train Selection Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        {/* Top Row: Train Search & Live Tracking Input */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <form onSubmit={handleSearchTrain} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '320px' }}>
             <div style={{
               background: '#0284c7',
               color: 'white',
@@ -150,35 +197,75 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
-              fontSize: '1.1rem'
+              fontSize: '1.1rem',
+              flexShrink: 0
             }}>
               🚆
             </div>
 
-            <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Enter Train Number (e.g. 12951, 12302, 12626)..."
+              value={searchTrainNumber}
+              onChange={(e) => setSearchTrainNumber(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'rgba(15, 23, 42, 0.9)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                outline: 'none'
+              }}
+            />
+
+            <button
+              type="submit"
+              style={{
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                border: 'none',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              Track Train
+            </button>
+
+            {trains.length > 0 && (
               <select
                 value={selectedTrainId}
-                onChange={(e) => onSelectTrain(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onSelectTrain(e.target.value);
+                  }
+                }}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.9)',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  color: '#f8fafc',
-                  padding: '8px 12px',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  color: '#94a3b8',
+                  padding: '8px 10px',
                   borderRadius: '8px',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  width: '100%',
+                  fontSize: '0.85rem',
+                  maxWidth: '200px',
                   cursor: 'pointer'
                 }}
               >
+                <option value="">-- Active Trains ({trains.length}) --</option>
                 {trains.map((t) => (
                   <option key={t.train_id} value={t.train_id}>
-                    {t.train_number} {t.train_name} ({t.origin_station_name} ➔ {t.destination_station_name})
+                    {t.train_number} {t.train_name}
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
+            )}
+          </form>
 
           {/* Quick Action Badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -248,22 +335,40 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
               📅 Today
             </button>
 
-            <button
-              onClick={() => handleQuickDate('tomorrow')}
-              style={{
-                background: 'rgba(30, 41, 59, 0.6)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#94a3b8',
-                padding: '4px 12px',
-                borderRadius: '16px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer'
-              }}
-            >
-              ⏩ Tomorrow
-            </button>
-          </div>
+              <button
+                onClick={() => handleQuickDate('tomorrow')}
+                style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                ⏩ Tomorrow
+              </button>
+
+              {routeData?.active_journey_date && (
+                <span style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  color: '#6ee7b7',
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                  <span>Live Track Run: {routeData.active_journey_date}</span>
+                </span>
+              )}
+            </div>
 
           {/* Full Interactive Date Calendar Input */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(15, 23, 42, 0.9)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
@@ -323,9 +428,39 @@ export const WhereIsMyTrainView: React.FC<WhereIsMyTrainViewProps> = ({
         flexDirection: 'column',
         gap: '0px'
       }}>
+        {errorMessage && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '14px 18px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '10px',
+            color: '#fca5a5',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '0.9rem'
+          }}>
+            <span style={{ fontSize: '1.4rem' }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: '#f87171', marginBottom: '2px' }}>Train Not Found</div>
+              <div>{errorMessage}</div>
+            </div>
+          </div>
+        )}
+
         {loading && !routeData ? (
           <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
-            Fetching dynamic train schedule...
+            <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔄</div>
+            <div>Fetching live train telemetry and route...</div>
+          </div>
+        ) : !selectedTrainId && !routeData ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🚆</div>
+            <h3 style={{ color: '#f8fafc', fontSize: '1.25rem', marginBottom: '8px' }}>No Train Selected</h3>
+            <p style={{ maxWidth: '420px', margin: '0 auto', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              Enter any Indian Railways train number (e.g. 12951, 12302, 12626) in the search box above to track real-time running status and ML dynamic ETA.
+            </p>
           </div>
         ) : routeData ? (
           routeData.route_items.map((st, idx) => {

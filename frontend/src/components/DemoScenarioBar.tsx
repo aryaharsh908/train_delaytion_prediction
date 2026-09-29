@@ -38,7 +38,7 @@ export const DemoScenarioBar: React.FC<DemoScenarioBarProps> = ({ onStepTriggere
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Award size={18} color="#38bdf8" />
           <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>
-            SIH 2026 JUDGES DEMONSTRATION SCENARIO (Train 12951 NDLS-BPL Rajdhani)
+            SIH 2026 JUDGES DEMONSTRATION SCENARIO (Dynamic Active Train Simulation)
           </span>
         </div>
 

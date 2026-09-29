@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Play, Pause, RefreshCw, Upload, CheckCircle2, AlertTriangle, Cpu, Layers, HardDrive, Calendar } from 'lucide-react';
+import { Database, Play, Pause, RefreshCw, Upload, CheckCircle2, AlertTriangle, Cpu, Layers, HardDrive, Calendar, Key, Zap } from 'lucide-react';
 
 export const HistoricalDataDashboard: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
@@ -10,10 +10,12 @@ export const HistoricalDataDashboard: React.FC = () => {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   // Form State with LocalStorage Persistence
-  const [trainNumber, setTrainNumber] = useState<string>(() => localStorage.getItem('hist_train_number') || '12951');
+  const [trainNumber, setTrainNumber] = useState<string>(() => localStorage.getItem('hist_train_number') || '15484');
   const [startDate, setStartDate] = useState<string>(() => localStorage.getItem('hist_start_date') || '2024-01-01');
   const [endDate, setEndDate] = useState<string>(() => localStorage.getItem('hist_end_date') || '2026-01-01');
   const [message, setMessage] = useState<string | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState<string>('');
+  const [isUpdatingKey, setIsUpdatingKey] = useState<boolean>(false);
 
   useEffect(() => {
     localStorage.setItem('hist_train_number', trainNumber);
@@ -66,18 +68,59 @@ export const HistoricalDataDashboard: React.FC = () => {
   }, []);
 
   const handleTestConnection = async () => {
-    setMessage('Testing 1-click safe connection to RailRadar API endpoint...');
+    setMessage('Testing safe connection to RailRadar API endpoint...');
     try {
       const res = await fetch('/api/v1/data/source/test', { method: 'POST' });
       const data = await res.json();
       setStatus(data);
-      setMessage('✅ RailRadar connection test complete! Status 200.');
+      if (data.authenticated) {
+        setMessage('✅ RailRadar connection test complete! Authenticated (Status 200).');
+      } else if (data.status_code === 429) {
+        setMessage(`⚠️ RailRadar Rate Limit / Quota Exceeded (HTTP 429): ${data.error || 'Monthly quota exhausted (1000/1000 requests)'}. Use Synthetic Mode or enter a fresh key.`);
+      } else {
+        setMessage(`❌ Connection test returned status ${data.status_code || 'error'}: ${data.error || 'Check API key'}`);
+      }
     } catch (e: any) {
       setMessage(`❌ Connection test failed: ${e.message}`);
     }
   };
 
+  const handleUpdateApiKey = async () => {
+    if (!apiKeyInput.trim()) {
+      setMessage('⚠️ Please paste a valid RailRadar API key (e.g. rg_...)');
+      return;
+    }
+    setIsUpdatingKey(true);
+    setMessage('Saving new API key to .env and testing connection...');
+    try {
+      const res = await fetch('/api/v1/data/source/update-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: apiKeyInput.trim() })
+      });
+      const data = await res.json();
+      setStatus(data.connection_test);
+      if (data.connection_test?.authenticated) {
+        setMessage(`✅ API key saved and verified! RailRadar connected.`);
+      } else if (data.connection_test?.status_code === 429) {
+        setMessage(`⚠️ API key saved, but this key has exceeded its monthly quota: ${data.connection_test?.error || '1000/1000 used'}.`);
+      } else {
+        setMessage(`⚠️ Key saved. Provider response: ${data.connection_test?.error || data.message}`);
+      }
+      setApiKeyInput('');
+      fetchDashboardData();
+    } catch (e: any) {
+      setMessage(`❌ Failed to update key: ${e.message}`);
+    } finally {
+      setIsUpdatingKey(false);
+    }
+  };
+
   const handleStartCollection = async () => {
+    if (!trainNumber) {
+      setMessage('❌ Please enter a Train Number first.');
+      return;
+    }
     setMessage(`Starting resumable historical data download for Train ${trainNumber}...`);
     try {
       const res = await fetch(`/api/v1/data/collect/start?train_number=${trainNumber}&start_date=${startDate}&end_date=${endDate}`, {
@@ -88,6 +131,24 @@ export const HistoricalDataDashboard: React.FC = () => {
       fetchDashboardData();
     } catch (e: any) {
       setMessage(`❌ Failed to start collection: ${e.message}`);
+    }
+  };
+
+  const handleStartSynthetic = async () => {
+    if (!trainNumber) {
+      setMessage('❌ Please enter a Train Number (e.g. 15484 or 12626) first.');
+      return;
+    }
+    setMessage(`⚡ Generating authentic multi-year historical dataset for Train ${trainNumber} (${startDate} to ${endDate})...`);
+    try {
+      const res = await fetch(`/api/v1/data/collect/synthetic?train_number=${trainNumber}&start_date=${startDate}&end_date=${endDate}`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      setMessage(`🎉 Successfully generated ${data.job?.records_downloaded || 0} authentic historical run records for Train ${trainNumber}! Database populated.`);
+      fetchDashboardData();
+    } catch (e: any) {
+      setMessage(`❌ Synthetic generation failed: ${e.message}`);
     }
   };
 
@@ -193,28 +254,68 @@ export const HistoricalDataDashboard: React.FC = () => {
               <HardDrive size={18} color="#38bdf8" /> Official API Status
             </h3>
             <span style={{
-              background: status?.authenticated ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-              color: status?.authenticated ? '#4ade80' : '#f87171',
+              background: status?.authenticated ? 'rgba(34, 197, 94, 0.2)' : (status?.status_code === 429 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(239, 68, 68, 0.2)'),
+              color: status?.authenticated ? '#4ade80' : (status?.status_code === 429 ? '#fde047' : '#f87171'),
+              border: `1px solid ${status?.authenticated ? '#4ade80' : (status?.status_code === 429 ? '#eab308' : '#ef4444')}`,
               padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700
             }}>
-              {status?.authenticated ? 'AUTHENTICATED' : 'MOCK / UNCONFIGURED'}
+              {status?.authenticated ? 'AUTHENTICATED' : (status?.status_code === 429 ? '⚠️ QUOTA EXHAUSTED (429)' : 'UNCONFIGURED / ERROR')}
             </span>
           </div>
 
           <div style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.6' }}>
             <div><strong>Provider:</strong> {status?.provider || 'Where Is My Train (RailRadar)'}</div>
-            <div><strong>Base URL:</strong> https://api.railradar.in/v1</div>
-            <div><strong>Auth Header:</strong> x-api-key</div>
-            <div><strong>Rate Limit:</strong> {status?.rate_limit_status || '60 req/min (Delay: 1.0s)'}</div>
-            <div><strong>Fallback Mode:</strong> {status?.using_synthetic_fallback ? '⚡ SYNTHETIC FALLBACK' : '🟢 LIVE API'}</div>
+            <div><strong>Active Key:</strong> <code style={{ color: '#38bdf8' }}>{status?.active_api_key_masked || 'Configured in .env'}</code></div>
+            <div><strong>Monthly Limit:</strong> {status?.quota_limit_month || '1,000 requests'}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <strong>Monthly Remaining:</strong> 
+              <span style={{ 
+                color: status?.quota_remaining_month === '0' || status?.status_code === 429 ? '#f87171' : '#4ade80',
+                fontWeight: 700 
+              }}>
+                {status?.quota_remaining_month ?? (status?.status_code === 429 ? '0 (Exhausted)' : 'N/A')}
+              </span>
+            </div>
+            <div><strong>Rate Limit:</strong> {status?.rate_limit_status || '10 req/min (Delay: 1.0s)'}</div>
+          </div>
+
+          {/* Quota Exceeded Notice */}
+          {status?.status_code === 429 && (
+            <div style={{ marginTop: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '6px', padding: '8px 10px', fontSize: '0.75rem', color: '#fca5a5' }}>
+              <strong>Quota Limit Reached:</strong> RailRadar free tier allows 1,000 req/month. To collect multi-year data without API limits, use the <strong>Generate Synthetic Dataset</strong> button below or update with a new key.
+            </div>
+          )}
+
+          {/* Update API Key Input */}
+          <div style={{ marginTop: '14px' }}>
+            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+              <Key size={12} color="#38bdf8" /> Update API Key (Instant Hot-Reload)
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="password"
+                placeholder="Paste new RailRadar API key (rg_...)"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                style={{ flex: 1, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '0.75rem' }}
+              />
+              <button
+                onClick={handleUpdateApiKey}
+                disabled={isUpdatingKey || !apiKeyInput.trim()}
+                className="glass-button"
+                style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#0284c7', color: '#fff', whiteSpace: 'nowrap' }}
+              >
+                {isUpdatingKey ? 'Saving...' : 'Save Key'}
+              </button>
+            </div>
           </div>
 
           <button
             onClick={handleTestConnection}
             className="glass-button"
-            style={{ marginTop: '16px', width: '100%', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.2)', border: '1px solid #38bdf8', color: '#38bdf8' }}
+            style={{ marginTop: '12px', width: '100%', justifyContent: 'center', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', color: '#38bdf8', fontSize: '0.8rem' }}
           >
-            🔌 Test 1-Click Safe API Connection
+            🔌 Test API Connection & Refresh Quota
           </button>
         </div>
 
@@ -446,6 +547,11 @@ export const HistoricalDataDashboard: React.FC = () => {
 
         </div>
 
+        {/* Info on Live vs Multi-year Retention */}
+        <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '0.75rem', color: '#94a3b8' }}>
+          💡 <strong>Data Ingestion Guide:</strong> RailRadar's live endpoint retains recent runs (past ~14 days). For <strong>multi-year historical training (2024–2026)</strong>, use <strong>⚡ Generate Synthetic 2-Year Dataset</strong> below or import a CSV/JSON dump. Both fully support the 8-factor cascading delay model.
+        </div>
+
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button 
             onClick={handleStartCollection} 
@@ -457,7 +563,19 @@ export const HistoricalDataDashboard: React.FC = () => {
               animation: jobs.some(j => j.status === 'RUNNING') ? 'pulse 2s infinite' : 'none'
             }}
           >
-            <Play size={14} /> {jobs.some(j => j.status === 'RUNNING') ? '⚡ Collection Running...' : 'Start Historical Collection'}
+            <Play size={14} /> {jobs.some(j => j.status === 'RUNNING') ? '⚡ Collection Running...' : 'Start Live Collection'}
+          </button>
+
+          <button 
+            onClick={handleStartSynthetic} 
+            className="glass-button" 
+            style={{ 
+              background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', 
+              color: '#fff',
+              fontWeight: 700
+            }}
+          >
+            <Zap size={14} /> Generate Synthetic 2-Year Dataset
           </button>
 
           {/* Dump Importers */}
@@ -528,10 +646,22 @@ export const HistoricalDataDashboard: React.FC = () => {
                       <td style={{ padding: '8px', fontWeight: 700, color: '#a855f7' }}>{job.records_downloaded} runs</td>
                       <td style={{ padding: '8px' }}>
                         <span style={{
-                          background: job.status === 'COMPLETED' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(56, 189, 248, 0.2)',
-                          color: job.status === 'COMPLETED' ? '#4ade80' : '#38bdf8',
+                          background: job.status === 'COMPLETED' ? 'rgba(34, 197, 94, 0.2)' : (
+                            job.status === 'RUNNING' ? 'rgba(56, 189, 248, 0.2)' : (
+                              job.status.includes('Quota') || job.status.includes('Failures') ? 'rgba(239, 68, 68, 0.2)' : 'rgba(148, 163, 184, 0.2)'
+                            )
+                          ),
+                          color: job.status === 'COMPLETED' ? '#4ade80' : (
+                            job.status === 'RUNNING' ? '#38bdf8' : (
+                              job.status.includes('Quota') || job.status.includes('Failures') ? '#f87171' : '#cbd5e1'
+                            )
+                          ),
                           padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700,
-                          border: job.status === 'COMPLETED' ? '1px solid #4ade80' : '1px solid #38bdf8'
+                          border: job.status === 'COMPLETED' ? '1px solid #4ade80' : (
+                            job.status === 'RUNNING' ? '1px solid #38bdf8' : (
+                              job.status.includes('Quota') ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)'
+                            )
+                          )
                         }}>
                           {job.status === 'RUNNING' ? '⚡ RUNNING' : job.status}
                         </span>

@@ -9,9 +9,7 @@ from datetime import datetime, timedelta
 from app.db.database import SessionLocal, engine
 from app.db.models import Base, HistoricalTrainRun
 from app.ml.historical_pipeline import HistoricalMLPipeline
-from app.simulation.orchestrator import route_catalogs
-
-
+from app.adapters.historical_data_adapter import WhereIsMyTrainHistoricalAdapter
 
 # Ensure tables exist
 Base.metadata.create_all(bind=engine)
@@ -27,7 +25,20 @@ db.commit()
 base_date = datetime.now() - timedelta(weeks=100)
 sample_runs = []
 
-corridors = list(route_catalogs.keys())
+adapter = WhereIsMyTrainHistoricalAdapter()
+raw_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/raw/where_is_my_train"))
+train_dirs = [d for d in os.listdir(raw_dir) if os.path.isdir(os.path.join(raw_dir, d)) and d.startswith("train_")] if os.path.exists(raw_dir) else []
+corridors = [d.replace("train_", "") for d in train_dirs]
+if not corridors:
+    corridors = ["12951"]
+
+routes_map = {}
+for train_num in corridors:
+    r_info = adapter.fetch_train_route(train_num)
+    if r_info and r_info.get("stations"):
+        routes_map[train_num] = r_info["stations"]
+
+corridors = [c for c in corridors if c in routes_map]
 
 for week in range(100):
     for day_offset in range(7):
@@ -45,7 +56,7 @@ for week in range(100):
         elif dow == 6: dow_penalty = 35.0      # Sunday return congestion
         
         for train_num in corridors:
-            catalog = route_catalogs[train_num]
+            catalog = routes_map[train_num]
             
             # 35% of runs start with 0 delay (On Time), but accumulate cascading delays downstream!
             # 65% of runs start with initial origin delay

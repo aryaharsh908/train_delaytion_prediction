@@ -110,29 +110,14 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({ isOpen, onClose, o
           </div>
         )}
 
-        {/* Target Train Selector */}
+        {/* Target Train Number Input */}
         <div style={{ marginBottom: '14px' }}>
           <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 600 }}>
-            TARGET TRAIN (MATCHES PASSENGER VIEW):
+            TARGET TRAIN NUMBER (OPTIONAL):
           </label>
-          <select
-            onChange={(e) => {
-              const trainSectionMap: Record<string, string> = {
-                'TRAIN_12951': 'NDLS-MTJ',
-                'TRAIN_12302': 'NDLS-CNB',
-                'TRAIN_12626': 'BPL-NGP',
-                'TRAIN_12002': 'MTJ-AGC',
-                'TRAIN_12424': 'CNB-PRYJ',
-                'TRAIN_12958': 'DEC-JP',
-                'TRAIN_12425': 'PNP-UMB',
-                'TRAIN_12622': 'NGP-BPQ',
-                'TRAIN_12724': 'KZJ-SC',
-                'TRAIN_12260': 'DDU-DHN'
-              };
-              if (trainSectionMap[e.target.value]) {
-                setSelectedSection(trainSectionMap[e.target.value]);
-              }
-            }}
+          <input
+            type="text"
+            placeholder="Enter train number (e.g. 12951, 12302)..."
             style={{
               width: '100%',
               background: 'rgba(15, 23, 42, 0.9)',
@@ -141,20 +126,10 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({ isOpen, onClose, o
               padding: '10px',
               borderRadius: '8px',
               fontSize: '0.85rem',
-              fontWeight: 600
+              fontWeight: 600,
+              boxSizing: 'border-box'
             }}
-          >
-            <option value="TRAIN_12951">12951 Mumbai Rajdhani Express</option>
-            <option value="TRAIN_12302">12302 Howrah Rajdhani Express</option>
-            <option value="TRAIN_12626">12626 Kerala Express</option>
-            <option value="TRAIN_12002">12002 Rani Kamlapati Shatabdi</option>
-            <option value="TRAIN_12424">12424 Dibrugarh Rajdhani Express</option>
-            <option value="TRAIN_12958">12958 Swarna Jayanti Rajdhani</option>
-            <option value="TRAIN_12425">12425 Jammu Rajdhani Express</option>
-            <option value="TRAIN_12622">12622 Tamil Nadu Express</option>
-            <option value="TRAIN_12724">12724 Telangana Express</option>
-            <option value="TRAIN_12260">12260 Sealdah Duronto Express</option>
-          </select>
+          />
         </div>
 
         {/* Section Selector */}
