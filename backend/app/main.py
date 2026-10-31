@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.simulation.orchestrator import SimulationOrchestrator
-from app.api import trains, simulation, events, network, model, websocket, historical, ml_retrain, health, counterfactual, corridor
+from app.api import trains, simulation, events, network, model, websocket, historical, ml_retrain, health, counterfactual, corridor, agent
 from app.db.init_db import init_db
 from app.db.database import SessionLocal
 from app.services.historical_collector import ResumableHistoricalCollector
@@ -21,6 +21,7 @@ websocket.set_orchestrator(orchestrator)
 counterfactual.set_orchestrator(orchestrator)
 ml_retrain.set_orchestrator(orchestrator)
 corridor.set_orchestrator(orchestrator)
+agent.set_orchestrator(orchestrator)
 
 simulation_task = None
 
@@ -91,6 +92,7 @@ app.include_router(ml_retrain.router, prefix=settings.API_V1_STR)
 app.include_router(health.router, prefix=settings.API_V1_STR)
 app.include_router(counterfactual.router, prefix=settings.API_V1_STR)
 app.include_router(corridor.router, prefix=settings.API_V1_STR)
+app.include_router(agent.router, prefix=settings.API_V1_STR)
 app.include_router(websocket.router)
 
 @app.get("/api-status")

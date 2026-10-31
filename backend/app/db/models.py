@@ -53,3 +53,29 @@ class HistoricalTrainRun(Base):
         Index("idx_train_seq", "train_number", "station_sequence"),
         Index("idx_station_date", "station_code", "journey_date"),
     )
+
+
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+
+    id = Column(String, primary_key=True, index=True)
+    model = Column(String, nullable=False)
+    prompt = Column(String, nullable=False)
+    system_prompt = Column(String, nullable=True)
+    tool_calls = Column(String, nullable=True)
+    tool_results = Column(String, nullable=True)
+    output = Column(String, nullable=True)
+    latency_ms = Column(Float, nullable=False, default=0.0)
+    tokens_used = Column(Integer, nullable=True, default=0)
+    source = Column(String, default="gemma")  # "gemma" or "fallback"
+    status = Column(String, default="SUCCESS")  # "SUCCESS", "FALLBACK", "ERROR"
+    created_at = Column(String, default=lambda: datetime.now().isoformat())
+
+
+class AgentCache(Base):
+    __tablename__ = "agent_cache"
+
+    cache_key = Column(String, primary_key=True, index=True)
+    model = Column(String, nullable=False)
+    response = Column(String, nullable=False)
+    created_at = Column(String, default=lambda: datetime.now().isoformat())
