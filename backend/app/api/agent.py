@@ -85,6 +85,26 @@ def run_dispatch_reasoning(req: DispatchRequest):
     return result
 
 
+class ExplainRequest(BaseModel):
+    train_id: str
+    context: Optional[str] = None
+    model: Optional[str] = "gemma-4-26b-a4b-it"
+
+
+@router.post("/explain")
+def get_prediction_explanation(req: ExplainRequest):
+    """
+    Generates Gemma 4 operational explanation for a train ETA forecast or alert,
+    grounded in empirical feature importances and P10/P50/P90 quantile bounds.
+    """
+    from app.explainability.explainer import ETAExplainer
+    return ETAExplainer.explain_prediction(
+        train_id=req.train_id,
+        context=req.context,
+        model=req.model or "gemma-4-26b-a4b-it"
+    )
+
+
 @router.get("/runs/{run_id}")
 def get_agent_run(run_id: str = Path(..., description="Agent run UUID"), db: Session = Depends(get_db)):
     """Fetches full audit trace for an agent reasoning run."""
