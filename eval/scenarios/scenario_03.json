@@ -1,0 +1,27 @@
+{
+  "id": "scenario_03",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at RTM (12002 vs 12909)",
+  "junction": "RTM",
+  "trains": [
+    {
+      "id": "12002",
+      "name": "Bhopal Shatabdi",
+      "priority": 1,
+      "distance_km": 15.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12909",
+      "name": "Garib Rath Express",
+      "priority": 2,
+      "distance_km": 18.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "RTM_DN_MAIN",
+  "description": "Converging approach at RTM: high priority Bhopal Shatabdi (12002) trailing behind Garib Rath Express (12909)."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "scenario_22",
+  "category": "weather_fog_restriction",
+  "title": "Dense Fog Caution Working at MTJ",
+  "junction": "MTJ",
+  "weather": "DENSE_FOG",
+  "visibility_meters": 120,
+  "max_fog_speed_kmh": 60.0,
+  "trains": [
+    {
+      "id": "12002",
+      "name": "Bhopal Shatabdi",
+      "priority": 1,
+      "speed_kmh": 60,
+      "delay_min": 35.0
+    },
+    {
+      "id": "22436",
+      "name": "Vande Bharat Express",
+      "priority": 1,
+      "speed_kmh": 60,
+      "delay_min": 28.0
+    }
+  ],
+  "active_block": "MTJ_FOG_ZONE",
+  "description": "Severe visibility reduction (120m) near MTJ. Headway margin expanded to 12 minutes under rule HEAD-04."
+}

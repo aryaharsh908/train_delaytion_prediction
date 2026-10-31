@@ -1,0 +1,27 @@
+{
+  "id": "scenario_04",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at BRC (22436 vs 12925)",
+  "junction": "BRC",
+  "trains": [
+    {
+      "id": "22436",
+      "name": "Vande Bharat Express",
+      "priority": 1,
+      "distance_km": 16.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12925",
+      "name": "Paschim Express",
+      "priority": 2,
+      "distance_km": 19.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "BRC_DN_MAIN",
+  "description": "Converging approach at BRC: high priority Vande Bharat Express (22436) trailing behind Paschim Express (12925)."
+}

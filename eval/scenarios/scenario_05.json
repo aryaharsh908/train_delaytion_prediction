@@ -1,0 +1,27 @@
+{
+  "id": "scenario_05",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at BSR (12953 vs 09001)",
+  "junction": "BSR",
+  "trains": [
+    {
+      "id": "12953",
+      "name": "August Kranti Rajdhani",
+      "priority": 1,
+      "distance_km": 17.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "09001",
+      "name": "Bandra Special",
+      "priority": 3,
+      "distance_km": 20.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "BSR_DN_MAIN",
+  "description": "Converging approach at BSR: high priority August Kranti Rajdhani (12953) trailing behind Bandra Special (09001)."
+}

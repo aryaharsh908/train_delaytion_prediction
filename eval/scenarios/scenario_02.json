@@ -1,0 +1,27 @@
+{
+  "id": "scenario_02",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at KOTA (12952 vs 12414)",
+  "junction": "KOTA",
+  "trains": [
+    {
+      "id": "12952",
+      "name": "Delhi Rajdhani",
+      "priority": 1,
+      "distance_km": 14.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12414",
+      "name": "Pooja Superfast",
+      "priority": 2,
+      "distance_km": 17.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "KOTA_DN_MAIN",
+  "description": "Converging approach at KOTA: high priority Delhi Rajdhani (12952) trailing behind Pooja Superfast (12414)."
+}

@@ -1,0 +1,27 @@
+{
+  "id": "scenario_07",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at KOTA (12909 vs 12951)",
+  "junction": "KOTA",
+  "trains": [
+    {
+      "id": "12909",
+      "name": "Garib Rath Express",
+      "priority": 2,
+      "distance_km": 19.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12951",
+      "name": "Mumbai Rajdhani",
+      "priority": 1,
+      "distance_km": 22.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "KOTA_DN_MAIN",
+  "description": "Converging approach at KOTA: high priority Garib Rath Express (12909) trailing behind Mumbai Rajdhani (12951)."
+}

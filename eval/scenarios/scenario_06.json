@@ -1,0 +1,27 @@
+{
+  "id": "scenario_06",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at MTJ (12414 vs 09002)",
+  "junction": "MTJ",
+  "trains": [
+    {
+      "id": "12414",
+      "name": "Pooja Superfast",
+      "priority": 2,
+      "distance_km": 18.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "09002",
+      "name": "Surat Container Goods",
+      "priority": 4,
+      "distance_km": 21.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "MTJ_DN_MAIN",
+  "description": "Converging approach at MTJ: high priority Pooja Superfast (12414) trailing behind Surat Container Goods (09002)."
+}

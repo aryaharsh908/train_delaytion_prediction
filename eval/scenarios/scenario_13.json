@@ -1,0 +1,35 @@
+{
+  "id": "scenario_13",
+  "category": "multi_train_cascade",
+  "title": "Three-Train Cascading Bottleneck near BSR",
+  "junction": "BSR",
+  "trains": [
+    {
+      "id": "22436",
+      "name": "Vande Bharat Express",
+      "priority": 1,
+      "distance_km": 8.0,
+      "delay_min": 25.0,
+      "speed_kmh": 60
+    },
+    {
+      "id": "12953",
+      "name": "August Kranti Rajdhani",
+      "priority": 1,
+      "distance_km": 16.0,
+      "delay_min": 12.0,
+      "speed_kmh": 85
+    },
+    {
+      "id": "12414",
+      "name": "Pooja Superfast",
+      "priority": 2,
+      "distance_km": 24.0,
+      "delay_min": 4.0,
+      "speed_kmh": 110
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "BSR_UP_THROUGH",
+  "description": "Delay cascade at BSR: leading delayed train causes compounding headway penalties on two following expresses."
+}

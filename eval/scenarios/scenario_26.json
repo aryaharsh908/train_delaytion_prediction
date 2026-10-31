@@ -1,0 +1,27 @@
+{
+  "id": "scenario_26",
+  "category": "weather_fog_restriction",
+  "title": "Dense Fog Caution Working at BSR",
+  "junction": "BSR",
+  "weather": "DENSE_FOG",
+  "visibility_meters": 120,
+  "max_fog_speed_kmh": 60.0,
+  "trains": [
+    {
+      "id": "12909",
+      "name": "Garib Rath Express",
+      "priority": 2,
+      "speed_kmh": 60,
+      "delay_min": 35.0
+    },
+    {
+      "id": "12925",
+      "name": "Paschim Express",
+      "priority": 2,
+      "speed_kmh": 60,
+      "delay_min": 28.0
+    }
+  ],
+  "active_block": "BSR_FOG_ZONE",
+  "description": "Severe visibility reduction (120m) near BSR. Headway margin expanded to 12 minutes under rule HEAD-04."
+}

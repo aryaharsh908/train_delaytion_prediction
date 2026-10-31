@@ -1,0 +1,33 @@
+{
+  "id": "scenario_17",
+  "category": "platform_congestion",
+  "title": "Platform Occupancy Deficit at KOTA",
+  "junction": "KOTA",
+  "available_platforms": 2,
+  "trains": [
+    {
+      "id": "12925",
+      "name": "Paschim Express",
+      "priority": 2,
+      "platform_assigned": "1",
+      "dwell_remaining_min": 8.0
+    },
+    {
+      "id": "09002",
+      "name": "Surat Container Goods",
+      "priority": 4,
+      "platform_assigned": "2",
+      "dwell_remaining_min": 6.0
+    },
+    {
+      "id": "12952",
+      "name": "Delhi Rajdhani",
+      "priority": 1,
+      "approaching_distance_km": 5.0,
+      "speed_kmh": 50
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "KOTA_STATION_YARD",
+  "description": "All station platforms occupied at KOTA with incoming express requiring regulation or holding at home signal."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "scenario_29",
+  "category": "sensor_dropout",
+  "title": "Track Circuit Intermittent Dropout near RTM",
+  "junction": "RTM",
+  "sensor_status": "INTERMITTENT_DROPOUT",
+  "trains": [
+    {
+      "id": "09002",
+      "name": "Surat Container Goods",
+      "priority": 4,
+      "last_known_station": "RTM",
+      "telemetry_delay_seconds": 180
+    }
+  ],
+  "active_block": "RTM_AXLE_COUNTER_FAULT",
+  "description": "Axle counter failure on approach to RTM. Dispatcher must verify block clearance before granting line clear."
+}

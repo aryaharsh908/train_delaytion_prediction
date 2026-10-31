@@ -1,0 +1,18 @@
+{
+  "id": "scenario_28",
+  "category": "sensor_dropout",
+  "title": "Track Circuit Intermittent Dropout near KOTA",
+  "junction": "KOTA",
+  "sensor_status": "INTERMITTENT_DROPOUT",
+  "trains": [
+    {
+      "id": "09001",
+      "name": "Bandra Special",
+      "priority": 3,
+      "last_known_station": "KOTA",
+      "telemetry_delay_seconds": 180
+    }
+  ],
+  "active_block": "KOTA_AXLE_COUNTER_FAULT",
+  "description": "Axle counter failure on approach to KOTA. Dispatcher must verify block clearance before granting line clear."
+}

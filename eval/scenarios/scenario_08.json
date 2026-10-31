@@ -1,0 +1,27 @@
+{
+  "id": "scenario_08",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at RTM (12925 vs 12952)",
+  "junction": "RTM",
+  "trains": [
+    {
+      "id": "12925",
+      "name": "Paschim Express",
+      "priority": 2,
+      "distance_km": 20.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12952",
+      "name": "Delhi Rajdhani",
+      "priority": 1,
+      "distance_km": 23.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "RTM_DN_MAIN",
+  "description": "Converging approach at RTM: high priority Paschim Express (12925) trailing behind Delhi Rajdhani (12952)."
+}

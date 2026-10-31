@@ -1,0 +1,33 @@
+{
+  "id": "scenario_16",
+  "category": "platform_congestion",
+  "title": "Platform Occupancy Deficit at MTJ",
+  "junction": "MTJ",
+  "available_platforms": 2,
+  "trains": [
+    {
+      "id": "12909",
+      "name": "Garib Rath Express",
+      "priority": 2,
+      "platform_assigned": "1",
+      "dwell_remaining_min": 8.0
+    },
+    {
+      "id": "09001",
+      "name": "Bandra Special",
+      "priority": 3,
+      "platform_assigned": "2",
+      "dwell_remaining_min": 6.0
+    },
+    {
+      "id": "12951",
+      "name": "Mumbai Rajdhani",
+      "priority": 1,
+      "approaching_distance_km": 5.0,
+      "speed_kmh": 50
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "MTJ_STATION_YARD",
+  "description": "All station platforms occupied at MTJ with incoming express requiring regulation or holding at home signal."
+}

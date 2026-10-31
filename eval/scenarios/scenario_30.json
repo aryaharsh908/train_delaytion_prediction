@@ -1,0 +1,18 @@
+{
+  "id": "scenario_30",
+  "category": "sensor_dropout",
+  "title": "Track Circuit Intermittent Dropout near BRC",
+  "junction": "BRC",
+  "sensor_status": "INTERMITTENT_DROPOUT",
+  "trains": [
+    {
+      "id": "12951",
+      "name": "Mumbai Rajdhani",
+      "priority": 1,
+      "last_known_station": "BRC",
+      "telemetry_delay_seconds": 180
+    }
+  ],
+  "active_block": "BRC_AXLE_COUNTER_FAULT",
+  "description": "Axle counter failure on approach to BRC. Dispatcher must verify block clearance before granting line clear."
+}

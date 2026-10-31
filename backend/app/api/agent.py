@@ -203,6 +203,27 @@ def generate_operations_report(req: ReportRequest):
         raise HTTPException(status_code=400, detail=f"Invalid report type '{req.type}'. Allowed: 'handover', 'incident'.")
 
 
+class ScenarioRequest(BaseModel):
+    category: Optional[str] = None
+    junction_code: Optional[str] = None
+    primary_train: Optional[str] = None
+    model: Optional[str] = "gemma-4-26b-a4b-it"
+
+
+@router.post("/scenario")
+def generate_synthetic_scenario(req: Optional[ScenarioRequest] = None):
+    """
+    Generates a synthetic railway disruption scenario for evaluation or drills.
+    """
+    from app.agent.scenarios import get_scenario_generator
+    gen = get_scenario_generator()
+    cat = req.category if req else None
+    junc = req.junction_code if req else None
+    train = req.primary_train if req else None
+    model = req.model if req else "gemma-4-26b-a4b-it"
+    return gen.generate_scenario(category=cat, junction_code=junc, primary_train=train, model=model)
+
+
 @router.get("/runs/{run_id}")
 def get_agent_run(run_id: str = Path(..., description="Agent run UUID"), db: Session = Depends(get_db)):
     """Fetches full audit trace for an agent reasoning run."""

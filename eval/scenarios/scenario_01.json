@@ -1,0 +1,27 @@
+{
+  "id": "scenario_01",
+  "category": "single_junction_conflict",
+  "title": "Converging Precedence at MTJ (12951 vs 12953)",
+  "junction": "MTJ",
+  "trains": [
+    {
+      "id": "12951",
+      "name": "Mumbai Rajdhani",
+      "priority": 1,
+      "distance_km": 13.0,
+      "delay_min": 10.0,
+      "speed_kmh": 110
+    },
+    {
+      "id": "12953",
+      "name": "August Kranti Rajdhani",
+      "priority": 1,
+      "distance_km": 16.0,
+      "delay_min": 5.0,
+      "speed_kmh": 90
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "MTJ_DN_MAIN",
+  "description": "Converging approach at MTJ: high priority Mumbai Rajdhani (12951) trailing behind August Kranti Rajdhani (12953)."
+}

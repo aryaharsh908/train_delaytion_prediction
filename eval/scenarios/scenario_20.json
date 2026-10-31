@@ -1,0 +1,33 @@
+{
+  "id": "scenario_20",
+  "category": "platform_congestion",
+  "title": "Platform Occupancy Deficit at BSR",
+  "junction": "BSR",
+  "available_platforms": 2,
+  "trains": [
+    {
+      "id": "12951",
+      "name": "Mumbai Rajdhani",
+      "priority": 1,
+      "platform_assigned": "1",
+      "dwell_remaining_min": 8.0
+    },
+    {
+      "id": "12002",
+      "name": "Bhopal Shatabdi",
+      "priority": 1,
+      "platform_assigned": "2",
+      "dwell_remaining_min": 6.0
+    },
+    {
+      "id": "12953",
+      "name": "August Kranti Rajdhani",
+      "priority": 1,
+      "approaching_distance_km": 5.0,
+      "speed_kmh": 50
+    }
+  ],
+  "weather": "CLEAR",
+  "active_block": "BSR_STATION_YARD",
+  "description": "All station platforms occupied at BSR with incoming express requiring regulation or holding at home signal."
+}

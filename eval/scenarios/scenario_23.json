@@ -1,0 +1,27 @@
+{
+  "id": "scenario_23",
+  "category": "weather_fog_restriction",
+  "title": "Dense Fog Caution Working at KOTA",
+  "junction": "KOTA",
+  "weather": "DENSE_FOG",
+  "visibility_meters": 120,
+  "max_fog_speed_kmh": 60.0,
+  "trains": [
+    {
+      "id": "22436",
+      "name": "Vande Bharat Express",
+      "priority": 1,
+      "speed_kmh": 60,
+      "delay_min": 35.0
+    },
+    {
+      "id": "12953",
+      "name": "August Kranti Rajdhani",
+      "priority": 1,
+      "speed_kmh": 60,
+      "delay_min": 28.0
+    }
+  ],
+  "active_block": "KOTA_FOG_ZONE",
+  "description": "Severe visibility reduction (120m) near KOTA. Headway margin expanded to 12 minutes under rule HEAD-04."
+}
