@@ -1,6 +1,6 @@
 # RailOps + Gemma 4: Autonomous Reasoning & Human-in-the-Loop Dispatching for Indian Railways
 
-An intelligent, safety-critical railway dispatch orchestration and dynamic forecast platform powered by **Google Gemma 4** (`gemma-4-31b-it` and `gemma-4-26b-a4b-it`) paired with physical simulation and machine learning engines for the **Smart India Hackathon** and **Build with Gemma 4 Hackathon**.
+An intelligent, safety-critical railway dispatch orchestration and dynamic forecast platform powered by **Google Gemma 4** (`gemma-4-31b-it` and `gemma-4-26b-a4b-it`) paired with physical simulation and machine learning engines for the **Smart India Hackathon** (Problem SIH26028, Ministry of Railways) and the **Build with Gemma 4 Hackathon**.
 
 ---
 
@@ -76,6 +76,43 @@ Every delay figure, conflict score, platform headway, and passenger-minute calcu
 
 ---
 
+## 🎯 The 11 Gemma 4 Agent Skills
+
+| # | Skill Name | Model Used | Primary Function | Tools Permitted |
+|---|---|---|---|---|
+| 1 | **Conflict Triage** | `gemma-4-31b-it` | Ranks converging trains and junction bottlenecks by delay escalation risk | `get_active_alerts`, `query_conflicts` |
+| 2 | **Dispatch Planner** | `gemma-4-31b-it` | Tests candidate interventions with simulation and drafts formal operating orders | `query_conflicts`, `run_counterfactual`, `check_platform_headway`, `get_train_state`, `search_rulebook` |
+| 3 | **ETA Explainer** | `gemma-4-26b-a4b-it` | Translates ML feature importances and confidence bounds into human explanations | `get_prediction_details`, `get_feature_importance` |
+| 4 | **Control-Room Chat** | `gemma-4-26b-a4b-it` | Multi-turn conversational interface mapping natural language to railway engines | All read-only tools + `run_counterfactual` |
+| 5 | **Rule Advisor** | `gemma-4-26b-a4b-it` | BM25 retrieval over Indian Railways General & Subsidiary Rules with citations | `search_rulebook` |
+| 6 | **Passenger Advisory Writer**| `gemma-4-26b-a4b-it` | Drafts station PA and app alerts in English and Hindi (Devanagari) | `get_train_state`, `get_prediction_details` |
+| 7 | **Shift Handover Reporter** | `gemma-4-31b-it` | Summarizes shift metrics, active bottlenecks, and unclosed risks | `get_event_log`, `get_history` |
+| 8 | **Post-Incident Analyst** | `gemma-4-31b-it` | Reconstructs disruption timelines and identifies root-cause delay propagation | `get_event_log`, `get_propagation_graph` |
+| 9 | **Prediction Critic** | `gemma-4-26b-a4b-it` | Flags physically impossible ETAs, sudden jumps, or low confidence predictions | `get_prediction_details`, `get_history` |
+| 10| **Visual Analyst** | `gemma-4-26b-a4b-it` | Multimodal parsing of station boards and signal interlocking diagrams | None (multimodal vision input) |
+| 11| **Scenario Generator** | `gemma-4-31b-it` | Generates realistic synthetic disruption scenarios (fog, blocks, signal drops) | `get_network_topology` |
+
+---
+
+## 🛠️ The 12 Agent Simulation Tools
+
+All tools are wrapped with strict Google GenAI JSON schemas and type validation in [`backend/app/agent/tools.py`](backend/app/agent/tools.py):
+
+1. **`get_active_alerts()`**: Current CUSUM speed-drop and corridor junction conflict alerts.
+2. **`get_train_state(train_id)`**: Real-time position, current delay, next stations, and P10/P50/P90 ETA quantiles.
+3. **`query_conflicts(junction_id)`**: Junction bottleneck score and converging train details.
+4. **`check_platform_headway(station_code)`**: Platform occupancy, headway buffers, and dwell requirements.
+5. **`get_prediction_details(train_id)`**: Machine learning confidence score, CRPS score, and quantile boundaries.
+6. **`get_feature_importance(train_id)`**: Top factor weights impacting delay (e.g. prior station delay, visibility).
+7. **`get_propagation_graph(train_id)`**: Downstream delay cascade graph across the railway network.
+8. **`get_event_log(start_time, end_time)`**: Chronological operations log for timeline reconstruction.
+9. **`get_history(train_id)`**: Historical section traversal times and past delay patterns.
+10. **`get_network_topology()`**: Network nodes, track sections, speed limits, and signal blocks.
+11. **`search_rulebook(query)`**: BM25 retrieval over 20 Indian Railways Operating Rules returning stable rule IDs.
+12. **`run_counterfactual(train_id, action, params)`**: Simulates "what-if" actions (`HOLD`, `PRIORITIZE`, `SPEED_RESTRICT`) and returns net passenger-minutes saved without modifying live state.
+
+---
+
 ## 📊 Comprehensive Benchmark Evaluation (30 Scenarios)
 
 The agent was benchmarked against **FIFO** (First-In, First-Out) and **Strict Priority Heuristics** across 30 realistic disruption benchmarks on the Delhi–Mumbai Western Trunk Corridor (`eval/scenarios/`):
@@ -137,92 +174,150 @@ Follow this script to demonstrate the complete intelligent dispatch lifecycle to
 
 ---
 
-## 🚀 Quickstart & Setup Guide
+## 🚀 Quickstart & Complete Setup Guide
 
-### 1. Prerequisites
-- **Python**: 3.11, 3.12, or 3.14 (with `pip` and `venv`)
-- **Node.js**: 18+ or 20+ LTS (with `npm`)
-- **Gemini API Key**: Free-tier key for Gemma 4 models from [Google AI Studio](https://aistudio.google.com/)
+### 📋 Prerequisites & System Requirements
 
-### 2. Environment Configuration
-Create `backend/.env` with your API key:
-```env
-GEMINI_API_KEY="your-google-ai-studio-key-here"
-GEMMA_BACKEND="gemini"
-DATABASE_URL="sqlite:///./railway_eta.db"
-```
-*(Note: `backend/.env` is strictly gitignored to protect secrets).*
+| Component | Minimum Requirement | Recommended |
+| :--- | :--- | :--- |
+| **Operating System** | Windows 10/11, Ubuntu 20.04+, or macOS 12+ | Windows 11 / Linux |
+| **Python** | 3.10, 3.11, 3.12, or 3.14 | Python 3.11+ |
+| **Node.js** | Node.js 18.x LTS | Node.js 20.x LTS |
+| **RAM** | 4 GB | 8 GB+ |
+| **API Key** | Google AI Studio Gemini API Key | Free-tier key |
 
-### 3. Automated 1-Click Startup (Windows)
+---
+
+### 🔑 Step 1: Configure Environment Variables
+
+1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
+2. Create or update `backend/.env` with your API key:
+   ```env
+   GEMINI_API_KEY="your-google-ai-studio-api-key-here"
+   GEMMA_BACKEND="gemini"
+   DATABASE_URL="sqlite:///./railway_eta.db"
+   ```
+   *(Note: `backend/.env` is strictly gitignored to ensure credentials are never pushed).*
+
+---
+
+### ⚡ Step 2: One-Click Startup (Windows)
+
+On Windows, launch both the backend server and frontend console simultaneously with:
+
 ```powershell
 .\start_app.ps1
 ```
-- Backend starts at: `http://localhost:8000` (API Docs at `/docs`)
-- Frontend starts at: `http://localhost:3000`
 
-### 4. Manual Startup
+- **Backend API**: `http://localhost:8000` (Interactive Swagger Docs at `http://localhost:8000/docs`)
+- **Frontend Operations Console**: `http://localhost:3000`
 
-#### Backend:
-```bash
-cd backend
-python -m venv venv
-# On Windows:
-.\venv\Scripts\activate
-# On Linux/macOS:
-source venv/bin/activate
+---
 
-pip install -r requirements.txt
-python run.py
-```
+### 🛠️ Step 3: Manual Startup
 
-#### Frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+#### A. Backend Setup (FastAPI & ML Engine)
+
+1. Open a terminal and navigate to the `backend` folder:
+   ```bash
+   cd backend
+   ```
+
+2. Create and activate a Python virtual environment:
+   - **Windows (PowerShell)**:
+     ```powershell
+     python -m venv venv
+     .\venv\Scripts\activate
+     ```
+   - **Linux / macOS**:
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+
+3. Install backend dependencies:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+4. Initialize database tables (creates SQLite tables for decisions, runs, and cache):
+   ```bash
+   python -c "from app.db.init_db import init_db; init_db()"
+   ```
+
+5. Start the backend server:
+   ```bash
+   python run.py
+   ```
+   The server will start on `http://127.0.0.1:8000`.
+
+#### B. Frontend Setup (React + TypeScript + Vite)
+
+1. Open a second terminal and navigate to `frontend`:
+   ```bash
+   cd frontend
+   ```
+
+2. Install Node dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   The console will launch at `http://localhost:3000`.
 
 ---
 
 ## 🧪 Comprehensive Verification & Test Suite
 
-Run unit and integration verification tests across each phase:
+Run unit and integration verification tests across each phase directly using Python:
 
 ```bash
 cd backend
-# Phase 1: Harness health, caching, and fallback
-python -m pytest tests/test_phase1.py -v
-
-# Phase 2: 12 Simulation tools and argument validation
-python -m pytest tests/test_phase2.py -v
 
 # Phase 3: Dispatcher agent reasoning loop
-python -m pytest tests/test_phase3.py -v
+python tests/test_phase3.py
 
 # Phase 4: Grounded explainability engine
-python -m pytest tests/test_phase4.py -v
+python tests/test_phase4.py
 
 # Phase 5: Guardrails (NumberValidator & InjectionDefense)
-python -m pytest tests/test_phase5.py -v
+python tests/test_phase5.py
 
 # Phase 6: BM25 Rulebook retrieval and citation validation
-python -m pytest tests/test_phase6.py -v
+python tests/test_phase6.py
 
 # Phase 7: Multi-turn control room chat
-python -m pytest tests/test_phase7.py -v
+python tests/test_phase7.py
 
 # Phase 8: Multimodal visual analyst
-python -m pytest tests/test_phase8.py -v
+python tests/test_phase8.py
 
 # Phase 9: Multilingual passenger advisories
-python -m pytest tests/test_phase9.py -v
+python tests/test_phase9.py
 
 # Phase 10: Shift handover and post-incident reports
-python -m pytest tests/test_phase10.py -v
+python tests/test_phase10.py
 
-# Run full evaluation benchmark
+# Run full evaluation benchmark across all 30 scenarios
 python ../eval/run_eval.py
 ```
+
+---
+
+## 🔧 Troubleshooting Guide
+
+| Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| **PowerShell script execution disabled** | Windows security policy blocks `.ps1` scripts | Run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process` |
+| **Port 8000 or 3000 in use** | A previous instance is still running | **Windows**: `npx kill-port 8000 3000` or stop Python/Node in Task Manager<br>**Linux/Mac**: `lsof -ti:8000,3000 \| xargs kill -9` |
+| **`sqlite3.OperationalError: no such table`** | Database schema not initialized | Run `python -c "from app.db.init_db import init_db; init_db()"` in `backend/` |
+| **500/503 from Gemini Free-Tier** | Temporary API quota limit or network blip | The system automatically retries and falls back to deterministic local engines (`"source": "fallback"`). No action needed. |
+| **Vite build error** | Outdated Node modules | In `frontend/`, run `npm cache clean --force` followed by `npm install` |
 
 ---
 
@@ -238,4 +333,4 @@ python ../eval/run_eval.py
 ## 📜 License & Acknowledgments
 
 - Built for the **Ministry of Railways, Government of India (SIH26028)** and the **Build with Gemma 4 Hackathon**.
-- Built with **Google Gemma 4** open-weights models.
+- Built with **Google Gemma 4** open-weights models (`gemma-4-31b-it` and `gemma-4-26b-a4b-it`).
