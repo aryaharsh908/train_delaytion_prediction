@@ -85,6 +85,27 @@ def run_dispatch_reasoning(req: DispatchRequest):
     return result
 
 
+class ChatRequest(BaseModel):
+    session_id: Optional[str] = None
+    message: str
+    model: Optional[str] = "gemma-4-26b-a4b-it"
+
+
+@router.post("/chat")
+def control_room_chat(req: ChatRequest):
+    """
+    Multi-turn conversational control-room assistant.
+    Maintains session history and executes read-only + counterfactual railway tools.
+    """
+    from app.agent.chat import get_control_room_chat
+    chat = get_control_room_chat()
+    return chat.process_message(
+        session_id=req.session_id,
+        message=req.message,
+        model=req.model or "gemma-4-26b-a4b-it"
+    )
+
+
 class ExplainRequest(BaseModel):
     train_id: str
     context: Optional[str] = None
