@@ -209,3 +209,118 @@ export async function syncCorridorTrain(trainNumber: string): Promise<any> {
   if (!res.ok) throw new Error(`Failed to sync train ${trainNumber}`);
   return res.json();
 }
+
+// -------------------------------------------------------------
+// Gemma 4 Agent Endpoints
+// -------------------------------------------------------------
+
+export async function fetchAgentHealth(): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/health`);
+  if (!res.ok) throw new Error('Failed to fetch agent health');
+  return res.json();
+}
+
+export async function runAgentDispatch(payload: {
+  train_id?: string;
+  alert_id?: string;
+  context?: string;
+  model?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/dispatch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Agent dispatch reasoning failed');
+  return res.json();
+}
+
+export async function sendAgentChatMessage(
+  sessionId: string | null,
+  message: string,
+  model?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, message, model })
+  });
+  if (!res.ok) throw new Error('Agent chat failed');
+  return res.json();
+}
+
+export async function fetchAgentExplanation(
+  trainId: string,
+  context?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/explain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ train_id: trainId, context })
+  });
+  if (!res.ok) throw new Error('Agent explainability failed');
+  return res.json();
+}
+
+export async function fetchAgentAdvisory(
+  trainId: string,
+  languages: string[] = ['en', 'hi']
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/advisory`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ train_id: trainId, languages })
+  });
+  if (!res.ok) throw new Error('Agent advisory generation failed');
+  return res.json();
+}
+
+export async function uploadAgentVision(
+  file: File,
+  prompt?: string
+): Promise<any> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (prompt) formData.append('prompt', prompt);
+
+  const res = await fetch(`${API_BASE_URL}/agent/vision`, {
+    method: 'POST',
+    body: formData
+  });
+  if (!res.ok) throw new Error('Agent vision analysis failed');
+  return res.json();
+}
+
+export async function approveAgentDecision(
+  decisionId: string,
+  data?: { controller_id?: string; edited_order?: string; notes?: string }
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/decisions/${decisionId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data || {})
+  });
+  if (!res.ok) throw new Error('Failed to approve decision');
+  return res.json();
+}
+
+export async function rejectAgentDecision(
+  decisionId: string,
+  data?: { controller_id?: string; notes?: string }
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/agent/decisions/${decisionId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data || {})
+  });
+  if (!res.ok) throw new Error('Failed to reject decision');
+  return res.json();
+}
+
+export async function fetchAgentDecisions(status?: string): Promise<any[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await fetch(`${API_BASE_URL}/agent/decisions${qs}`);
+  if (!res.ok) throw new Error('Failed to fetch decisions');
+  return res.json();
+}
+

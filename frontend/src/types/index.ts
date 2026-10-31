@@ -346,3 +346,47 @@ export interface CorridorHealthSummary {
   corridor_health_status: string;
   system_status: string;
 }
+
+export interface AgentToolTrace {
+  step: number;
+  tool: string;
+  args: Record<string, any>;
+  result: Record<string, any>;
+}
+
+export interface AgentRecommendation {
+  action: string;
+  train_id?: string;
+  params?: Record<string, any>;
+  expected_passenger_minutes_saved?: number;
+}
+
+export interface AgentAlternative {
+  action: string;
+  result: Record<string, any>;
+}
+
+export interface AgentDispatchResponse {
+  summary: string;
+  recommendation: AgentRecommendation;
+  alternatives_considered: AgentAlternative[];
+  rule_citations: string[];
+  confidence: 'low' | 'medium' | 'high';
+  operating_order_draft: string;
+  tool_trace: AgentToolTrace[];
+  decision_id?: string;
+  source?: 'gemma' | 'fallback';
+  model?: string;
+}
+
+export interface AgentDecisionRecord {
+  id: string;
+  train_id: string;
+  action: string;
+  operating_order: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  controller_id?: string;
+  created_at?: string;
+  rule_citations?: string[];
+}
+

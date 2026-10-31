@@ -8,12 +8,17 @@ import {
   BarChart2,
   FlaskConical,
   Bot,
+  MessageSquare,
+  Radio,
   UserCheck,
   Users
 } from 'lucide-react';
 
 export type CorridorNavTab =
   | 'COMMAND_CENTER'
+  | 'DISPATCHER_COPILOT'
+  | 'CHAT_CONSOLE'
+  | 'ADVISORY_PANEL'
   | 'FORECAST'
   | 'NETWORK_VIEW'
   | 'DELAY_PROPAGATION'
@@ -32,13 +37,15 @@ interface CorridorSidebarProps {
 export const CorridorSidebar: React.FC<CorridorSidebarProps> = ({ activeTab, onSelectTab }) => {
   const topNavItems = [
     { id: 'COMMAND_CENTER' as CorridorNavTab, label: 'Command Center', icon: LayoutDashboard },
+    { id: 'DISPATCHER_COPILOT' as CorridorNavTab, label: 'Dispatcher Copilot', icon: Bot },
+    { id: 'CHAT_CONSOLE' as CorridorNavTab, label: 'Control Chat', icon: MessageSquare },
+    { id: 'ADVISORY_PANEL' as CorridorNavTab, label: 'Passenger Advisory', icon: Radio },
     { id: 'FORECAST' as CorridorNavTab, label: 'Forecast', icon: TrendingUp },
     { id: 'NETWORK_VIEW' as CorridorNavTab, label: 'Network View', icon: Share2 },
     { id: 'DELAY_PROPAGATION' as CorridorNavTab, label: 'Delay Propagation', icon: Clock },
     { id: 'JUNCTION_RISK' as CorridorNavTab, label: 'Junction Risk', icon: AlertTriangle },
     { id: 'TIME_SPACE' as CorridorNavTab, label: 'Time-Space Chart', icon: BarChart2 },
     { id: 'WHAT_IF' as CorridorNavTab, label: 'What-If Lab', icon: FlaskConical },
-    { id: 'AI_EXPLAINER' as CorridorNavTab, label: 'AI Explainer', icon: Bot },
   ];
 
   const bottomNavItems = [

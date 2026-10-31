@@ -9,6 +9,9 @@ import { WhatIfLabView } from './components/corridor/WhatIfLabView';
 import { OperatorView } from './components/corridor/OperatorView';
 import { PassengerCardView } from './components/corridor/PassengerCardView';
 import { SwitchTrainModal } from './components/corridor/SwitchTrainModal';
+import { DispatcherCopilot } from './components/corridor/DispatcherCopilot';
+import { ChatConsole } from './components/corridor/ChatConsole';
+import { AdvisoryPanel } from './components/corridor/AdvisoryPanel';
 
 import { MLStudioView } from './components/MLStudioView';
 import { HistoricalDataDashboard } from './components/HistoricalDataDashboard';
@@ -222,7 +225,22 @@ export const App: React.FC = () => {
 
         {/* Dynamic Center View Panel */}
         <main style={{ flex: 1, overflowY: 'auto', backgroundColor: '#070e1c', position: 'relative' }}>
-          {activeNavTab === 'WHAT_IF' ? (
+          {activeNavTab === 'DISPATCHER_COPILOT' || activeNavTab === 'AI_EXPLAINER' ? (
+            <DispatcherCopilot
+              trains={trains}
+              selectedTrainId={selectedTrainId}
+              conflicts={conflicts}
+              onSelectTrain={handleSelectTrain}
+            />
+          ) : activeNavTab === 'CHAT_CONSOLE' ? (
+            <ChatConsole />
+          ) : activeNavTab === 'ADVISORY_PANEL' ? (
+            <AdvisoryPanel
+              trains={trains}
+              selectedTrainId={selectedTrainId}
+              onSelectTrain={handleSelectTrain}
+            />
+          ) : activeNavTab === 'WHAT_IF' ? (
             <WhatIfLabView
               selectedTrain={selectedTrain}
               trains={trains}
