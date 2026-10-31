@@ -81,12 +81,23 @@ class GeminiApiBackend(ModelBackend):
     def __init__(self, api_key: str):
         self.api_key = api_key
         self._client = None
+        self._unavailable_models = {}  # model_name -> timestamp of failure
         if self.api_key:
             try:
                 from google import genai
                 self._client = genai.Client(api_key=self.api_key)
             except Exception as e:
                 logger.error(f"Failed to initialize google-genai Client: {e}")
+
+    def _filter_models(self, requested_model: str) -> List[str]:
+        models_to_try = [requested_model]
+        if "31b" in requested_model:
+            models_to_try.append("gemma-4-26b-a4b-it")
+
+        now = time.time()
+        # Keep models that haven't failed recently (< 180s)
+        available = [m for m in models_to_try if now - self._unavailable_models.get(m, 0) > 180]
+        return available if available else models_to_try
 
     def generate(
         self,
@@ -108,11 +119,7 @@ class GeminiApiBackend(ModelBackend):
         if json_mode:
             config_args["response_mime_type"] = "application/json"
 
-        # Models to try (fallback to 26b if 31b encounters capacity spikes)
-        models_to_try = [model]
-        if "31b" in model:
-            models_to_try.append("gemma-4-26b-a4b-it")
-
+        models_to_try = self._filter_models(model)
         last_error = None
         for m in models_to_try:
             try:
@@ -135,6 +142,7 @@ class GeminiApiBackend(ModelBackend):
                 }
             except Exception as e:
                 logger.warning(f"Model {m} failed: {e}")
+                self._unavailable_models[m] = time.time()
                 last_error = e
 
         raise last_error or RuntimeError("Gemini API generation failed.")
@@ -157,10 +165,7 @@ class GeminiApiBackend(ModelBackend):
         if system:
             config_args["system_instruction"] = system
 
-        models_to_try = [model]
-        if "31b" in model:
-            models_to_try.append("gemma-4-26b-a4b-it")
-
+        models_to_try = self._filter_models(model)
         last_error = None
         for m in models_to_try:
             try:
@@ -199,6 +204,7 @@ class GeminiApiBackend(ModelBackend):
                 }
             except Exception as e:
                 logger.warning(f"Tool generation on {m} failed: {e}")
+                self._unavailable_models[m] = time.time()
                 last_error = e
 
         raise last_error or RuntimeError("Tool call generation failed.")
@@ -588,11 +594,37 @@ class GemmaHarness:
                         "content": f"Tool {fn_name} result: {json.dumps(res)}"
                     })
 
+                # Once tools have executed, proceed to synthesis of final operating order
+                break
+
             except Exception as e:
                 logger.warning(f"Tool loop step {step+1} error: {e}")
                 break
 
         latency = (time.time() - start_time) * 1000.0
+        
+        if not final_text and tool_trace:
+            # Gemma executed tool calls. Prompt Gemma to synthesize final JSON from tool results
+            try:
+                self.rate_limiter.wait_if_needed()
+                synth_prompt = (
+                    "All railway simulation tools and counterfactual evaluations have completed successfully.\n"
+                    "Based strictly on the tool results above, produce your final dispatch analysis and operating order.\n"
+                    "Output ONLY valid JSON matching the schema specified in your instructions."
+                )
+                conversation.append({"role": "user", "content": synth_prompt})
+                full_prompt = "\n\n".join([f"[{m.get('role', 'user').upper()}]: {m.get('content', '')}" for m in conversation])
+                synth_resp = self.backend.generate(
+                    prompt=full_prompt,
+                    system=system,
+                    model=model_used,
+                    json_mode=True
+                )
+                final_text = synth_resp.get("text", "")
+                tokens_total += synth_resp.get("tokens", 0)
+            except Exception as se:
+                logger.warning(f"Synthesis step failed: {se}")
+
         source = "gemma" if final_text else "fallback"
         if not final_text:
             final_text = self.get_fallback_explanation("Dispatch intervention")

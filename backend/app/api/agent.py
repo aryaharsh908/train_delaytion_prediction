@@ -1,4 +1,4 @@
-﻿"""
+"""
 Agent and Gemma 4 Reasoning API Endpoints.
 Provides health check, dispatch recommendation, chat, explainability, advisories, vision, and run audit logs.
 """
@@ -8,9 +8,11 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 from app.agent.harness import get_gemma_harness
+from app.agent.dispatcher_agent import get_dispatcher_agent
 from app.db.database import get_db
 from app.db.models import AgentRun
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/agent", tags=["Gemma 4 Agent"])
 
@@ -57,6 +59,30 @@ def get_agent_health():
             "source": "fallback",
             "error": str(e)
         }
+
+
+class DispatchRequest(BaseModel):
+    alert_id: Optional[str] = None
+    train_id: Optional[str] = None
+    context: Optional[str] = None
+    model: Optional[str] = "gemma-4-31b-it"
+
+
+@router.post("/dispatch")
+def run_dispatch_reasoning(req: DispatchRequest):
+    """
+    Runs Gemma 4 Dispatch Planner on an alert ID or train ID.
+    Performs multi-step tool calls, tests at least two counterfactual interventions,
+    and returns mathematically grounded operating recommendation with full audit trace.
+    """
+    agent = get_dispatcher_agent()
+    result = agent.run_dispatch(
+        alert_id=req.alert_id,
+        train_id=req.train_id,
+        context=req.context,
+        model=req.model or "gemma-4-31b-it"
+    )
+    return result
 
 
 @router.get("/runs/{run_id}")
