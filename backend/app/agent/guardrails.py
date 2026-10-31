@@ -177,6 +177,19 @@ class EntityValidator:
         if stn and stn.upper() not in KNOWN_STATIONS:
             unknown_entities.append(f"Station:{stn}")
 
+        # Check rule citations exist in rulebook
+        citations = structured_data.get("rule_citations", [])
+        if citations:
+            try:
+                from app.agent.rulebook import get_rulebook_engine
+                engine = get_rulebook_engine()
+                is_all_valid, valid_cits, invalid_cits = engine.validate_citations(citations)
+                if not is_all_valid:
+                    for inv in invalid_cits:
+                        unknown_entities.append(f"InvalidRuleCitation:{inv}")
+            except Exception as re_err:
+                logger.warning(f"Rule citation validation error: {re_err}")
+
         if unknown_entities:
             return False, unknown_entities, f"Unknown corridor entities referenced: {unknown_entities}"
 

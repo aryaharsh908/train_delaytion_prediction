@@ -376,10 +376,25 @@ def get_network_topology() -> Dict[str, Any]:
 
 
 def search_rulebook(query: str) -> Dict[str, Any]:
-    """Searches Indian Railways Operating and Dispatch Rulebook by keyword/topic."""
+    """Searches Indian Railways Operating and Dispatch Rulebook by keyword/topic using BM25."""
     if not query or not isinstance(query, str):
         return {"error": "Invalid query. Must provide a non-empty search query."}
 
+    try:
+        from app.agent.rulebook import get_rulebook_engine
+        engine = get_rulebook_engine()
+        results = engine.search(query, top_k=3)
+        if results:
+            return {
+                "status": "success",
+                "query": query,
+                "matched_rules_count": len(results),
+                "rules": results
+            }
+    except Exception as e:
+        logger.warning(f"BM25 rulebook search error: {e}")
+
+    # Fallback default rules
     rules = [
         {
             "rule_id": "PREC-01",
@@ -395,24 +410,13 @@ def search_rulebook(query: str) -> Dict[str, Any]:
             "rule_id": "LOOP-03",
             "title": "Station Loop Line Overtake Protocol",
             "summary": "When a lower priority train is delayed and followed by a high-precedence express within 18 km, the lower priority service must be regulated onto a station loop line."
-        },
-        {
-            "rule_id": "SPED-04",
-            "title": "Caution Order Speed Restriction",
-            "summary": "Temporary speed restrictions (TSR) imposed during track maintenance or inclement weather must be integrated into block occupancy clearing calculations."
         }
     ]
-
-    q_lower = query.lower()
-    matched = [r for r in rules if any(q_word in r["title"].lower() or q_word in r["summary"].lower() for q_word in q_lower.split())]
-    if not matched:
-        matched = rules[:2]
-
     return {
         "status": "success",
         "query": query,
-        "matched_rules_count": len(matched),
-        "rules": matched
+        "matched_rules_count": len(rules),
+        "rules": rules
     }
 
 
