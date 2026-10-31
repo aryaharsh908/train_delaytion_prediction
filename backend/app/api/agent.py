@@ -151,6 +151,27 @@ async def analyze_control_image(
         raise HTTPException(status_code=500, detail=f"Image analysis error: {e}")
 
 
+class AdvisoryRequest(BaseModel):
+    train_id: str
+    languages: Optional[List[str]] = ["en", "hi"]
+    model: Optional[str] = "gemma-4-26b-a4b-it"
+
+
+@router.post("/advisory")
+def create_passenger_advisory(req: AdvisoryRequest):
+    """
+    Generates multi-lingual passenger announcements in English and Hindi (Devanagari),
+    validated against the NumberValidator.
+    """
+    from app.agent.advisories import get_advisory_writer
+    writer = get_advisory_writer()
+    return writer.generate_advisory(
+        train_id=req.train_id,
+        languages=req.languages,
+        model=req.model or "gemma-4-26b-a4b-it"
+    )
+
+
 @router.get("/runs/{run_id}")
 def get_agent_run(run_id: str = Path(..., description="Agent run UUID"), db: Session = Depends(get_db)):
     """Fetches full audit trace for an agent reasoning run."""
