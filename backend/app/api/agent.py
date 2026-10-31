@@ -172,6 +172,37 @@ def create_passenger_advisory(req: AdvisoryRequest):
     )
 
 
+class ReportRequest(BaseModel):
+    type: str = "handover"  # "handover" or "incident"
+    incident_id: Optional[str] = None
+    train_id: Optional[str] = None
+    time_range: Optional[str] = None
+    model: Optional[str] = "gemma-4-26b-a4b-it"
+
+
+@router.post("/report")
+def generate_operations_report(req: ReportRequest):
+    """
+    Generates formal shift handover reports or post-incident disruption analysis.
+    """
+    from app.agent.reports import get_report_generator
+    gen = get_report_generator()
+    rep_type = req.type.lower()
+    if rep_type in ("handover", "shift_handover"):
+        return gen.generate_shift_handover(
+            time_range=req.time_range,
+            model=req.model or "gemma-4-26b-a4b-it"
+        )
+    elif rep_type in ("incident", "post_incident"):
+        return gen.generate_post_incident(
+            incident_id=req.incident_id,
+            train_id=req.train_id,
+            model=req.model or "gemma-4-26b-a4b-it"
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Invalid report type '{req.type}'. Allowed: 'handover', 'incident'.")
+
+
 @router.get("/runs/{run_id}")
 def get_agent_run(run_id: str = Path(..., description="Agent run UUID"), db: Session = Depends(get_db)):
     """Fetches full audit trace for an agent reasoning run."""
