@@ -3,7 +3,7 @@ Agent and Gemma 4 Reasoning API Endpoints.
 Provides health check, dispatch recommendation, chat, explainability, advisories, vision, and run audit logs.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
+from fastapi import APIRouter, HTTPException, Depends, Query, Path, UploadFile, File, Form
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
@@ -124,6 +124,31 @@ def get_prediction_explanation(req: ExplainRequest):
         context=req.context,
         model=req.model or "gemma-4-26b-a4b-it"
     )
+
+
+@router.post("/vision")
+async def analyze_control_image(
+    file: UploadFile = File(..., description="Control room screenshot or track diagram"),
+    prompt: Optional[str] = Form(None)
+):
+    """
+    Multimodal visual analyst endpoint.
+    Extracts structured facts (trains, delays, signals) from control room screenshots.
+    Requires human controller confirmation before applying.
+    """
+    from app.agent.vision import get_visual_analyst
+    analyst = get_visual_analyst()
+    content = await file.read()
+    try:
+        return analyst.analyze_image(
+            image_bytes=content,
+            mime_type=file.content_type or "image/png",
+            user_prompt=prompt
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image analysis error: {e}")
 
 
 @router.get("/runs/{run_id}")
