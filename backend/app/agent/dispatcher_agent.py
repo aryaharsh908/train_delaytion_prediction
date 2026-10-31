@@ -6,6 +6,7 @@ and strict JSON operating order generation.
 
 import json
 import re
+import uuid
 import logging
 from typing import Dict, List, Any, Optional
 
@@ -197,6 +198,33 @@ class DispatcherAgent:
         structured_data["tool_trace"] = tool_trace
         structured_data["source"] = source
         structured_data["run_id"] = run_id
+
+        # 5. Apply guardrails
+        from app.agent.guardrails import apply_guardrails
+        structured_data = apply_guardrails(structured_data, tool_trace, strict_numbers=False)
+
+        # 6. Store recommendation as pending AgentDecision for human sign-off
+        decision_id = str(uuid.uuid4())
+        try:
+            from app.db.database import SessionLocal
+            from app.db.models import AgentDecision
+            db = SessionLocal()
+            try:
+                dec = AgentDecision(
+                    id=decision_id,
+                    run_id=run_id or decision_id,
+                    status="PENDING",
+                    edited_order=structured_data.get("operating_order_draft")
+                )
+                db.add(dec)
+                db.commit()
+            finally:
+                db.close()
+        except Exception as de:
+            logger.warning(f"Failed to record pending decision: {de}")
+
+        structured_data["decision_id"] = decision_id
+        structured_data["decision_status"] = "PENDING"
         return structured_data
 
 

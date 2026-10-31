@@ -125,3 +125,66 @@ def get_agent_run(run_id: str = Path(..., description="Agent run UUID"), db: Ses
         "status": run.status,
         "created_at": run.created_at
     }
+
+
+class DecisionActionRequest(BaseModel):
+    controller_id: str = "CHIEF_CONTROLLER_1"
+    edited_order: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/decisions/{decision_id}/approve")
+def approve_decision(decision_id: str, req: Optional[DecisionActionRequest] = None, db: Session = Depends(get_db)):
+    """Approves a pending dispatch operating order with controller sign-off."""
+    from app.db.models import AgentDecision
+    dec = db.query(AgentDecision).filter(AgentDecision.id == decision_id).first()
+    if not dec:
+        raise HTTPException(status_code=404, detail="Decision record not found")
+    dec.status = "APPROVED"
+    dec.controller_id = req.controller_id if req else "CHIEF_CONTROLLER"
+    if req and req.edited_order:
+        dec.edited_order = req.edited_order
+    if req and req.notes:
+        dec.notes = req.notes
+    dec.decided_at = datetime.now().isoformat()
+    db.commit()
+    return {"status": "success", "decision_id": dec.id, "state": dec.status, "controller_id": dec.controller_id}
+
+
+@router.post("/decisions/{decision_id}/reject")
+def reject_decision(decision_id: str, req: Optional[DecisionActionRequest] = None, db: Session = Depends(get_db)):
+    """Rejects a pending dispatch operating order."""
+    from app.db.models import AgentDecision
+    dec = db.query(AgentDecision).filter(AgentDecision.id == decision_id).first()
+    if not dec:
+        raise HTTPException(status_code=404, detail="Decision record not found")
+    dec.status = "REJECTED"
+    dec.controller_id = req.controller_id if req else "CHIEF_CONTROLLER"
+    if req and req.notes:
+        dec.notes = req.notes
+    dec.decided_at = datetime.now().isoformat()
+    db.commit()
+    return {"status": "success", "decision_id": dec.id, "state": dec.status, "controller_id": dec.controller_id}
+
+
+@router.get("/decisions")
+def list_decisions(status: Optional[str] = None, db: Session = Depends(get_db)):
+    """Lists dispatch decisions filtered by status (PENDING, APPROVED, REJECTED)."""
+    from app.db.models import AgentDecision
+    q = db.query(AgentDecision)
+    if status:
+        q = q.filter(AgentDecision.status == status.upper())
+    recs = q.order_by(AgentDecision.created_at.desc()).limit(50).all()
+    return [
+        {
+            "id": r.id,
+            "run_id": r.run_id,
+            "status": r.status,
+            "controller_id": r.controller_id,
+            "edited_order": r.edited_order,
+            "notes": r.notes,
+            "decided_at": r.decided_at,
+            "created_at": r.created_at
+        }
+        for r in recs
+    ]

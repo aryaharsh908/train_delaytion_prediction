@@ -79,3 +79,17 @@ class AgentCache(Base):
     model = Column(String, nullable=False)
     response = Column(String, nullable=False)
     created_at = Column(String, default=lambda: datetime.now().isoformat())
+
+
+class AgentDecision(Base):
+    """Stores human-in-the-loop controller approval/rejection of AI dispatch recommendations."""
+    __tablename__ = "agent_decisions"
+
+    id = Column(String, primary_key=True, index=True)
+    run_id = Column(String, nullable=False, index=True)
+    status = Column(String, default="PENDING")  # PENDING, APPROVED, REJECTED, EDITED
+    controller_id = Column(String, nullable=True)
+    edited_order = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
+    decided_at = Column(String, nullable=True)
+    created_at = Column(String, default=lambda: datetime.now().isoformat())
